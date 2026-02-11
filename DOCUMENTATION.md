@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-02-09 02:07:12 UTC
+> Generated on: 2026-02-11 02:12:58 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -192,7 +192,218 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.13.0-beta.6
+#### 1.13.0-rc.3
+
+- Fixes and improvements
+
+Important changes since 1.12:
+
+- Add NaiveProxy outbound 1
+- Add pre-match support for auto_redirect 2
+- Improve auto_redirect 3
+- Add Chrome Root Store certificate option 4
+- Add new options for ACME DNS-01 challenge providers 5
+- Add Wi-Fi state support for Linux and Windows 6
+- Add curve preferences, pinned public key SHA256, mTLS and ECH query_server_name for TLS options 7
+- Add kTLS support 8
+- Add ICMP echo (ping) proxy support 9
+- Add interface_address, network_interface_address and default_interface_address rule items 10
+- Add preferred_by route rule item 11
+- Improve local DNS server 12
+- Add disable_tcp_keep_alive, tcp_keep_alive and tcp_keep_alive_interval options for listen and dial fields 13
+- Add bind_address_no_port option for dial fields 14
+- Add system interface and relay server options for Tailscale endpoint 15
+- Add Claude Code Multiplexer service 16
+- Add OpenAI Codex Multiplexer service 17
+- Apple/Android: Refactor GUI
+- Apple/Android: Add support for sharing configurations via QRS
+- Android: Add support for resisting VPN detection via Xposed
+- Drop support for go1.23 18
+- Drop support for Android 5.0 19
+- Update uTLS to v1.8.2 20
+- Update quic-go to v0.59.0
+- Update gVisor to v20250811
+- Update Tailscale to v1.92.4
+
+`auto_redirect``auto_redirect``query_server_name``interface_address``network_interface_address``default_interface_address``preferred_by``local``disable_tcp_keep_alive``tcp_keep_alive``tcp_keep_alive_interval``bind_address_no_port`1:
+
+NaiveProxy outbound now supports QUIC, ECH, UDP over TCP, and configurable QUIC congestion control.
+
+Only available on Apple platforms, Android, Windows and some Linux architectures.
+Each Windows release includes libcronet.dll —
+ensure this file is in the same directory as sing-box.exe or in a directory listed in PATH.
+
+`libcronet.dll``sing-box.exe``PATH`See NaiveProxy outbound.
+
+2:
+
+auto_redirect now allows you to bypass sing-box for connections based on routing rules.
+
+`auto_redirect`A new rule action bypass is introduced to support this feature. When matched during pre-match, the connection will bypass sing-box and connect directly.
+
+`bypass`This feature requires Linux with auto_redirect enabled.
+
+`auto_redirect`See Pre-match and Rule Action.
+
+3:
+
+auto_redirect now rejects MPTCP connections by default to fix compatibility issues.
+You can change it to bypass sing-box via the new exclude_mptcp option.
+
+`auto_redirect``exclude_mptcp`Adds a fallback iproute2 rule checked after system default rules (32766: main, 32767: default),
+ensuring traffic is routed to the sing-box table when no route is found in system tables.
+The rule index can be customized via auto_redirect_iproute2_fallback_rule_index (default: 32768).
+
+`auto_redirect_iproute2_fallback_rule_index`See TUN.
+
+4:
+
+Adds chrome as a new certificate store option alongside mozilla.
+Both stores filter out China-based CA certificates.
+
+`chrome``mozilla`See Certificate.
+
+5:
+
+See DNS-01 Challenge.
+
+6:
+
+sing-box can now monitor Wi-Fi state on Linux and Windows to enable routing rules based on wifi_ssid and wifi_bssid.
+
+`wifi_ssid``wifi_bssid`See Wi-Fi State.
+
+7:
+
+See TLS.
+
+8:
+
+Adds kernel_tx and kernel_rx options for TLS inbound.
+Enables kernel-level TLS offloading via splice(2) on Linux 5.1+ with TLS 1.3.
+
+`kernel_tx``kernel_rx``splice(2)`See TLS.
+
+9:
+
+sing-box can now proxy ICMP echo (ping) requests.
+A new icmp network type is available for route rules.
+Supported from TUN, WireGuard and Tailscale inbounds to Direct, WireGuard and Tailscale outbounds.
+The reject action can also reply to ICMP echo requests.
+
+`icmp``reject`10:
+
+New rule items for matching based on interface IP addresses, available in route rules, DNS rules and rule-sets.
+
+11:
+
+Matches outbounds' preferred routes.
+For Tailscale: MagicDNS domains and peers' allowed IPs. For WireGuard: peers' allowed IPs.
+
+12:
+
+The local DNS server now uses platform-native resolution:
+getaddrinfo/libresolv on Apple platforms, systemd-resolved DBus on Linux.
+A new prefer_go option is available to opt out.
+
+`local``getaddrinfo``prefer_go`See Local DNS.
+
+13:
+
+The default TCP keep-alive initial period has been updated from 10 minutes to 5 minutes.
+
+See Dial Fields.
+
+14:
+
+Adds the Linux socket option IP_BIND_ADDRESS_NO_PORT support when explicitly binding to a source address.
+
+`IP_BIND_ADDRESS_NO_PORT`This allows reusing the same source port for multiple connections, improving scalability for high-concurrency proxy scenarios.
+
+See Dial Fields.
+
+15:
+
+Tailscale endpoint can now create a system TUN interface to handle traffic directly.
+New relay_server_port and relay_server_static_endpoints options for incoming relay connections.
+
+`relay_server_port``relay_server_static_endpoints`See Tailscale endpoint.
+
+16:
+
+CCM (Claude Code Multiplexer) service allows you to access your local Claude Code subscription remotely through custom tokens, eliminating the need for OAuth authentication on remote clients.
+
+See CCM.
+
+17:
+
+See OCM.
+
+18:
+
+Due to maintenance difficulties, sing-box 1.13.0 requires at least Go 1.24 to compile.
+
+19:
+
+Due to maintenance difficulties, sing-box 1.13.0 will be the last version to support Android 5.0,
+and only through a separate legacy build (with -legacy-android-5 suffix).
+
+`-legacy-android-5`For standalone binaries, the minimum Android version has been raised to Android 6.0,
+since Termux requires Android 7.0 or later.
+
+20:
+
+This update fixes missing padding extension for Chrome 120+ fingerprints.
+
+Also, documentation has been updated with a warning about uTLS fingerprinting vulnerabilities.
+uTLS is not recommended for censorship circumvention due to fundamental architectural limitations;
+use NaiveProxy instead for TLS fingerprint resistance.
+
+#### 1.12.21
+
+- Fixes and improvements
+
+#### 1.13.0-rc.2
+
+- Fixes and improvements
+
+#### 1.12.20
+
+- Fixes and improvements
+
+#### 1.13.0-rc.1
+
+- Fixes and improvements
+
+#### 1.12.19
+
+- Fixes and improvements
+
+#### 1.13.0-beta.8
+
+- Add fallback routing rule for auto_redirect 1
+- Fixes and improvements
+
+`auto_redirect`1:
+
+Adds a fallback iproute2 rule checked after system default rules (32766: main, 32767: default),
+ensuring traffic is routed to the sing-box table when no route is found in system tables.
+
+The rule index can be customized via auto_redirect_iproute2_fallback_rule_index (default: 32768).
+
+`auto_redirect_iproute2_fallback_rule_index`#### 1.12.18
+
+- Add fallback routing rule for auto_redirect 1
+- Fixes and improvements
+
+`auto_redirect`1:
+
+Adds a fallback iproute2 rule checked after system default rules (32766: main, 32767: default),
+ensuring traffic is routed to the sing-box table when no route is found in system tables.
+
+The rule index can be customized via auto_redirect_iproute2_fallback_rule_index (default: 32768).
+
+`auto_redirect_iproute2_fallback_rule_index`#### 1.13.0-beta.6
 
 - Update uTLS to v1.8.2 1
 - Fixes and improvements
@@ -7936,6 +8147,7 @@ Changes in sing-box 1.13.0
 auto_redirect_reset_mark
  auto_redirect_nfqueue
  exclude_mptcp
+ auto_redirect_iproute2_fallback_rule_index
 
 Changes in sing-box 1.12.0
 
@@ -7998,6 +8210,7 @@ Only supported on Linux, Windows and macOS.
   "auto_redirect_output_mark": "0x2024",
   "auto_redirect_reset_mark": "0x2025",
   "auto_redirect_nfqueue": 100,
+  "auto_redirect_iproute2_fallback_rule_index": 32768,
   "exclude_mptcp": false,
   "loopback_address": [
     "10.7.0.1"
@@ -8221,7 +8434,18 @@ NFQueue number used by auto_redirect pre-matching.
 
 `auto_redirect`100 is used by default.
 
-`100`#### exclude_mptcp
+`100`#### auto_redirect_iproute2_fallback_rule_index
+
+Since sing-box 1.12.18
+
+Linux iproute2 fallback rule index generated by auto_redirect.
+
+`auto_redirect`This rule is checked after system default rules (32766: main, 32767: default),
+routing traffic to the sing-box table only when no route is found in system tables.
+
+32768 is used by default.
+
+`32768`#### exclude_mptcp
 
 Since sing-box 1.13.0
 
@@ -12958,6 +13182,7 @@ Changes in sing-box 1.13.0
 
 alidns.security_token
  cloudflare.zone_token
+ acmedns
 
 ### Structure
 
@@ -13010,7 +13235,24 @@ Optional API token with Zone:Read permission.
 
 `Zone:Read`When provided, allows api_token to be scoped to a single zone.
 
-`api_token`
+`api_token`#### ACME-DNS
+
+Since sing-box 1.13.0
+
+```
+{
+  "provider": "acmedns",
+  "username": "",
+  "password": "",
+  "subdomain": "",
+  "server_url": ""
+}
+
+```
+
+See ACME-DNS for details.
+
+
 ---
 
 ## Listen Fields
