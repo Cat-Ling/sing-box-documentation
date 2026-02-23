@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-02-21 01:55:03 UTC
+> Generated on: 2026-02-23 02:05:17 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -192,11 +192,11 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.13.0-rc.3
+#### 1.13.0-rc.5
 
-- Fixes and improvements
+- Add mipsle, mips64le, riscv64 and loong64 support for NaiveProxy outbound
 
-Important changes since 1.12:
+`mipsle``mips64le``riscv64``loong64`Important changes since 1.12:
 
 - Add NaiveProxy outbound 1
 - Add pre-match support for auto_redirect 2
@@ -358,6 +358,14 @@ This update fixes missing padding extension for Chrome 120+ fingerprints.
 Also, documentation has been updated with a warning about uTLS fingerprinting vulnerabilities.
 uTLS is not recommended for censorship circumvention due to fundamental architectural limitations;
 use NaiveProxy instead for TLS fingerprint resistance.
+
+#### 1.12.22
+
+- Fixes and improvements
+
+#### 1.13.0-rc.3
+
+- Fixes and improvements
 
 #### 1.12.21
 
