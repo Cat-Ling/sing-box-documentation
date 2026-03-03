@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-01 02:11:04 UTC
+> Generated on: 2026-03-03 02:04:13 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -192,9 +192,7 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.13.0-rc.6
-
-- Fixes and improvements
+#### 1.13.0
 
 Important changes since 1.12:
 
@@ -212,7 +210,7 @@ Important changes since 1.12:
 - Improve local DNS server 12
 - Add disable_tcp_keep_alive, tcp_keep_alive and tcp_keep_alive_interval options for listen and dial fields 13
 - Add bind_address_no_port option for dial fields 14
-- Add system interface and relay server options for Tailscale endpoint 15
+- Add system interface, relay server and advertise tags options for Tailscale endpoint 15
 - Add Claude Code Multiplexer service 16
 - Add OpenAI Codex Multiplexer service 17
 - Apple/Android: Refactor GUI
@@ -326,8 +324,9 @@ See Dial Fields.
 
 Tailscale endpoint can now create a system TUN interface to handle traffic directly.
 New relay_server_port and relay_server_static_endpoints options for incoming relay connections.
+New advertise_tags option for ACL tag advertisement.
 
-`relay_server_port``relay_server_static_endpoints`See Tailscale endpoint.
+`relay_server_port``relay_server_static_endpoints``advertise_tags`See Tailscale endpoint.
 
 16:
 
@@ -358,6 +357,10 @@ This update fixes missing padding extension for Chrome 120+ fingerprints.
 Also, documentation has been updated with a warning about uTLS fingerprinting vulnerabilities.
 uTLS is not recommended for censorship circumvention due to fundamental architectural limitations;
 use NaiveProxy instead for TLS fingerprint resistance.
+
+#### 1.12.23
+
+- Fixes and improvements
 
 #### 1.13.0-rc.5
 
@@ -6428,6 +6431,7 @@ relay_server_port
  system_interface
  system_interface_name
  system_interface_mtu
+ advertise_tags
 
 Since sing-box 1.12.0
 
@@ -6447,6 +6451,7 @@ Since sing-box 1.12.0
   "exit_node_allow_lan_access": false,
   "advertise_routes": [],
   "advertise_exit_node": false,
+  "advertise_tags": [],
   "relay_server_port": 0,
   "relay_server_static_endpoints": [],
   "system_interface": false,
@@ -6522,7 +6527,15 @@ Example: ["192.168.1.1/24"]
 
 Indicates whether the node should advertise itself as an exit node.
 
-#### relay_server_port
+#### advertise_tags
+
+Since sing-box 1.13.0
+
+Tags to advertise for this node, for ACL enforcement purposes.
+
+Example: ["tag:server"]
+
+`["tag:server"]`#### relay_server_port
 
 Since sing-box 1.13.0
 
@@ -14896,12 +14909,36 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | with_v2ray_api | ️ | Build with V2Ray API support, see Experimental. | 
 | with_gvisor |  | Build with gVisor support, see Tun inbound and WireGuard outbound. | 
 | with_embedded_tor (CGO required) | ️ | Build with embedded Tor support, see Tor outbound. | 
-| with_tailscale |  | Build with Tailscale support, see Tailscale endpoint | 
-| with_naive_outbound | ️ | Build with NaiveProxy outbound support, see NaiveProxy outbound. | 
+| with_tailscale |  | Build with Tailscale support, see Tailscale endpoint. | 
+| with_ccm |  | Build with Claude Code Multiplexer service support. | 
+| with_ocm |  | Build with OpenAI Codex Multiplexer service support. | 
+| with_naive_outbound |  | Build with NaiveProxy outbound support, see NaiveProxy outbound. | 
+| badlinkname |  | Enable go:linkname access to internal standard library functions. Required because the Go standard library does not expose many low-level APIs needed by this project, and reimplementing them externally is impractical. Used for kTLS (kernel TLS offload) and raw TLS record manipulation. | 
+| tfogo_checklinkname0 |  | Companion to badlinkname. Go 1.23+ enforces go:linkname restrictions via the linker; this tag signals the build uses -checklinkname=0 to bypass that enforcement. | 
 
-`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``with_embedded_tor``with_tailscale``with_naive_outbound`It is not recommended to change the default build tag list unless you really know what you are adding.
+`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
 
-##  with_naive_outbound
+##  Linker Flags
+
+The following -ldflags are used in official builds:
+
+`-ldflags`| Flag | Description | 
+| --- | --- |
+| -X 'internal/godebug.defaultGODEBUG=multipathtcp=0' | Go 1.24 enabled Multipath TCP for listeners by default (multipathtcp=2). This may cause errors on low-level sockets, and sing-box has its own MPTCP control (tcp_multi_path option). This flag disables the Go default. | 
+| -checklinkname=0 | Go 1.23+ linker rejects unauthorized go:linkname usage. This flag disables the check, required together with the badlinkname build tag. | 
+
+`-X 'internal/godebug.defaultGODEBUG=multipathtcp=0'``multipathtcp=2``tcp_multi_path``-checklinkname=0``go:linkname``badlinkname`##  For Downstream Packagers
+
+The default build tag lists and linker flags are available as files in the repository for downstream packagers to reference directly:
+
+| File | Description | 
+| --- | --- |
+| release/DEFAULT_BUILD_TAGS | Default for Linux (common architectures), Darwin, and Android. | 
+| release/DEFAULT_BUILD_TAGS_WINDOWS | Default for Windows (includes with_purego). | 
+| release/DEFAULT_BUILD_TAGS_OTHERS | Default for other platforms (no with_naive_outbound). | 
+| release/LDFLAGS | Required linker flags (see above). | 
+
+`release/DEFAULT_BUILD_TAGS``release/DEFAULT_BUILD_TAGS_WINDOWS``with_purego``release/DEFAULT_BUILD_TAGS_OTHERS``with_naive_outbound``release/LDFLAGS`##  with_naive_outbound
 
 NaiveProxy outbound requires special build configurations depending on your target platform.
 
