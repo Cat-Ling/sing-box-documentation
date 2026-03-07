@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-05 02:00:56 UTC
+> Generated on: 2026-03-07 01:53:53 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -191,6 +191,14 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.13.1
+
+- Fixes and improvements
+
+#### 1.12.14
+
+- Backport fixes
 
 #### 1.13.0
 
