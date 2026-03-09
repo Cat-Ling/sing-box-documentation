@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-07 01:53:53 UTC
+> Generated on: 2026-03-09 02:03:36 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -83,6 +83,7 @@
 - [DNS01 Challenge Fields](#dns01-challenge-fields)
 - [Listen Fields](#listen-fields)
 - [Multiplex](#multiplex)
+- [Neighbor Resolution](#neighbor-resolution)
 - [Pre-match](#pre-match)
 - [TCP Brutal](#tcp-brutal)
 - [TLS](#tls)
@@ -191,6 +192,35 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.1
+
+- Add source_mac_address and source_hostname rule items 1
+- Add include_mac_address and exclude_mac_address TUN options 2
+- Update NaiveProxy to 145.0.7632.159 3
+- Fixes and improvements
+
+`source_mac_address``source_hostname``include_mac_address``exclude_mac_address`1:
+
+New rule items for matching LAN devices by MAC address and hostname via neighbor resolution.
+Supported on Linux, macOS, or in graphical clients on Android and macOS.
+
+See Route Rule, DNS Rule and Neighbor Resolution.
+
+2:
+
+Limit or exclude devices from TUN routing by MAC address.
+Only supported on Linux with auto_route and auto_redirect enabled.
+
+`auto_route``auto_redirect`See TUN.
+
+3:
+
+This is not an official update from NaiveProxy. Instead, it's a Chromium codebase update maintained by Project S.
+
+#### 1.13.2
+
+- Fixes and improvements
 
 #### 1.13.1
 
@@ -4730,6 +4760,11 @@ IPv6 address range for FakeIP.
 
 # DNS Rule
 
+Changes in sing-box 1.14.0
+
+source_mac_address
+ source_hostname
+
 Changes in sing-box 1.13.0
 
 interface_address
@@ -4876,6 +4911,12 @@ rule_set
         },
         "default_interface_address": [
           "2000::/3"
+        ],
+        "source_mac_address": [
+          "00:11:22:33:44:55"
+        ],
+        "source_hostname": [
+          "my-device"
         ],
         "wifi_ssid": [
           "My WIFI"
@@ -5109,6 +5150,22 @@ Since sing-box 1.13.0
 Only supported on Linux, Windows, and macOS.
 
 Match default interface address.
+
+#### source_mac_address
+
+Since sing-box 1.14.0
+
+Only supported on Linux, macOS, or in graphical clients on Android and macOS. See Neighbor Resolution for setup.
+
+Match source device MAC address.
+
+#### source_hostname
+
+Since sing-box 1.14.0
+
+Only supported on Linux, macOS, or in graphical clients on Android and macOS. See Neighbor Resolution for setup.
+
+Match source device hostname from DHCP leases.
 
 #### wifi_ssid
 
@@ -8175,6 +8232,11 @@ TLS configuration, see TLS.
 
 # Tun
 
+Changes in sing-box 1.14.0
+
+include_mac_address
+ exclude_mac_address
+
 Changes in sing-box 1.13.0
 
 auto_redirect_reset_mark
@@ -8295,6 +8357,12 @@ Only supported on Linux, Windows and macOS.
   ],
   "exclude_package": [
     "com.android.captiveportallogin"
+  ],
+  "include_mac_address": [
+    "00:11:22:33:44:55"
+  ],
+  "exclude_mac_address": [
+    "66:77:88:99:aa:bb"
   ],
   "platform": {
     "http_proxy": {
@@ -8686,7 +8754,27 @@ Limit android packages in route.
 
 Exclude android packages in route.
 
-#### platform
+#### include_mac_address
+
+Since sing-box 1.14.0
+
+Only supported on Linux with auto_route and auto_redirect enabled.
+
+`auto_route``auto_redirect`Limit MAC addresses in route. Not limited by default.
+
+Conflict with exclude_mac_address.
+
+`exclude_mac_address`#### exclude_mac_address
+
+Since sing-box 1.14.0
+
+Only supported on Linux with auto_route and auto_redirect enabled.
+
+`auto_route``auto_redirect`Exclude MAC addresses in route.
+
+Conflict with include_mac_address.
+
+`include_mac_address`#### platform
 
 Platform-specific settings, provided by client applications.
 
@@ -10746,6 +10834,11 @@ See Dial Fields for details.
 
 # Route
 
+Changes in sing-box 1.14.0
+
+find_neighbor
+ dhcp_lease_files
+
 Changes in sing-box 1.12.0
 
 default_domain_resolver
@@ -10777,6 +10870,9 @@ rule_set
     "override_android_vpn": false,
     "default_interface": "",
     "default_mark": 0,
+    "find_process": false,
+    "find_neighbor": false,
+    "dhcp_lease_files": [],
     "default_domain_resolver": "", // or {}
     "default_network_strategy": "",
     "default_network_type": [],
@@ -10840,7 +10936,33 @@ Set routing mark by default.
 
 Takes no effect if outbound.routing_mark is set.
 
-`outbound.routing_mark`#### default_domain_resolver
+`outbound.routing_mark`#### find_process
+
+Only supported on Linux, Windows, and macOS.
+
+Enable process search for logging when no process_name, process_path, package_name, user or user_id rules exist.
+
+`process_name``process_path``package_name``user``user_id`#### find_neighbor
+
+Since sing-box 1.14.0
+
+Only supported on Linux and macOS.
+
+Enable neighbor resolution for logging when no source_mac_address or source_hostname rules exist.
+
+`source_mac_address``source_hostname`See Neighbor Resolution for setup.
+
+#### dhcp_lease_files
+
+Since sing-box 1.14.0
+
+Only supported on Linux and macOS.
+
+Custom DHCP lease file paths for hostname and MAC address resolution.
+
+Automatically detected from common DHCP servers (dnsmasq, odhcpd, ISC dhcpd, Kea) if empty.
+
+#### default_domain_resolver
 
 Since sing-box 1.12.0
 
@@ -10982,6 +11104,11 @@ Default outbound will be used if empty.
 **Source URL**: <https://sing-box.sagernet.org/configuration/route/rule/>
 
 # Route Rule
+
+Changes in sing-box 1.14.0
+
+source_mac_address
+ source_hostname
 
 Changes in sing-box 1.13.0
 
@@ -11139,6 +11266,12 @@ rule_set
         "preferred_by": [
           "tailscale",
           "wireguard"
+        ],
+        "source_mac_address": [
+          "00:11:22:33:44:55"
+        ],
+        "source_hostname": [
+          "my-device"
         ],
         "rule_set": [
           "geoip-cn",
@@ -11404,7 +11537,23 @@ Match specified outbounds' preferred routes.
 | tailscale | Match MagicDNS domains and peers' allowed IPs | 
 | wireguard | Match peers's allowed IPs | 
 
-`tailscale``wireguard`#### rule_set
+`tailscale``wireguard`#### source_mac_address
+
+Since sing-box 1.14.0
+
+Only supported on Linux, macOS, or in graphical clients on Android and macOS. See Neighbor Resolution for setup.
+
+Match source device MAC address.
+
+#### source_hostname
+
+Since sing-box 1.14.0
+
+Only supported on Linux, macOS, or in graphical clients on Android and macOS. See Neighbor Resolution for setup.
+
+Match source device hostname from DHCP leases.
+
+#### rule_set
 
 Since sing-box 1.8.0
 
@@ -13584,6 +13733,57 @@ Enable padding.
 #### brutal
 
 See TCP Brutal for details.
+
+
+---
+
+## Neighbor Resolution
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/neighbor/>
+
+# Neighbor Resolution
+
+Match LAN devices by MAC address and hostname using
+source_mac_address and
+source_hostname rule items.
+
+`source_mac_address``source_hostname`Neighbor resolution is automatically enabled when these rule items exist.
+Use route.find_neighbor to force enable it for logging without rules.
+
+`route.find_neighbor`## Linux
+
+Works natively. No special setup required.
+
+Hostname resolution requires DHCP lease files,
+automatically detected from common DHCP servers (dnsmasq, odhcpd, ISC dhcpd, Kea).
+Custom paths can be set via route.dhcp_lease_files.
+
+`route.dhcp_lease_files`## Android
+
+Only supported in graphical clients.
+
+Requires Android 11 or above and ROOT.
+
+Must use VPNHotspot to share the VPN connection.
+ROM built-in features like "Use VPN for connected devices" can share VPN
+but cannot provide MAC address or hostname information.
+
+Set IP Masquerade Mode to None in VPNHotspot settings.
+
+Only route/DNS rules are supported. TUN include/exclude routes are not supported.
+
+### Hostname Visibility
+
+Hostname is only visible in sing-box if it is visible in VPNHotspot.
+For Apple devices, change Private Wi-Fi Address from Rotating to Fixed in the Wi-Fi settings
+of the connected network. Non-Apple devices are always visible.
+
+## macOS
+
+Requires the standalone version (macOS system extension).
+The App Store version can share the VPN as a hotspot but does not support MAC address or hostname reading.
+
+See VPN Hotspot for Internet Sharing setup.
 
 
 ---
