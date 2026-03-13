@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-11 01:56:01 UTC
+> Generated on: 2026-03-13 02:00:13 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -192,6 +192,54 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.2
+
+- Add OpenWrt and Alpine APK packages to release 1
+- Backport to macOS 10.13 High Sierra 2
+- OCM service: Add WebSocket support for Responses API 3
+- Fixes and improvements
+
+1:
+
+Alpine APK files use linux in the filename to distinguish from OpenWrt APKs which use the openwrt prefix:
+
+`linux``openwrt`- OpenWrt: sing-box_{version}_openwrt_{architecture}.apk
+- Alpine: sing-box_{version}_linux_{architecture}.apk
+
+`sing-box_{version}_openwrt_{architecture}.apk``sing-box_{version}_linux_{architecture}.apk`2:
+
+Legacy macOS binaries (with -legacy-macos-10.13 suffix) now support
+macOS 10.13 High Sierra, built using Go 1.25 with patches
+from SagerNet/go.
+
+`-legacy-macos-10.13`3:
+
+See OCM.
+
+#### 1.13.3-beta.1
+
+- Add OpenWrt and Alpine APK packages to release 1
+- Backport to macOS 10.13 High Sierra 2
+- OCM service: Add WebSocket support for Responses API 3
+- Fixes and improvements
+
+1:
+
+Alpine APK files use linux in the filename to distinguish from OpenWrt APKs which use the openwrt prefix:
+
+`linux``openwrt`- OpenWrt: sing-box_{version}_openwrt_{architecture}.apk
+- Alpine: sing-box_{version}_linux_{architecture}.apk
+
+`sing-box_{version}_openwrt_{architecture}.apk``sing-box_{version}_linux_{architecture}.apk`2:
+
+Legacy macOS binaries (with -legacy-macos-10.13 suffix) now support
+macOS 10.13 High Sierra, built using Go 1.25 with patches
+from SagerNet/go.
+
+`-legacy-macos-10.13`3:
+
+See OCM.
 
 #### 1.14.0-alpha.1
 
@@ -8237,6 +8285,10 @@ Changes in sing-box 1.14.0
 include_mac_address
  exclude_mac_address
 
+Changes in sing-box 1.13.3
+
+strict_route
+
 Changes in sing-box 1.13.0
 
 auto_redirect_reset_mark
@@ -8576,8 +8628,16 @@ Enforce strict routing rules when auto_route is enabled:
 
 - Let unsupported network unreachable
 - For legacy reasons, when neither strict_route nor auto_redirect are enabled, all ICMP traffic will not go through TUN.
+- When auto_redirect is enabled, strict_route also affects SO_BINDTODEVICE traffic:
+Enabled: SO_BINDTODEVICE traffic is redirected through sing-box.
+Disabled: SO_BINDTODEVICE traffic bypasses sing-box.
+- Enabled: SO_BINDTODEVICE traffic is redirected through sing-box.
+- Disabled: SO_BINDTODEVICE traffic bypasses sing-box.
 
-`strict_route``auto_redirect`In Windows:
+`strict_route``auto_redirect``auto_redirect``strict_route``SO_BINDTODEVICE`- Enabled: SO_BINDTODEVICE traffic is redirected through sing-box.
+- Disabled: SO_BINDTODEVICE traffic bypasses sing-box.
+
+`SO_BINDTODEVICE``SO_BINDTODEVICE`In Windows:
 
 - Let unsupported network unreachable
 - prevent DNS leak caused by
@@ -9675,12 +9735,14 @@ Official Release Build Variants:
 
 | Build Variant | Platforms | Description | 
 | --- | --- | --- |
-| (default) | Linux amd64/arm64 | purego build with libcronet.so included | 
-| -glibc | Linux 386/amd64/arm/arm64 | CGO build dynamically linked with glibc, requires glibc >= 2.31 | 
-| -musl | Linux 386/amd64/arm/arm64 | CGO build statically linked with musl, no system requirements | 
-| (default) | Windows amd64/arm64 | purego build with libcronet.dll included | 
+| (no suffix) | Linux amd64/arm64 | purego build, libcronet.so included | 
+| -glibc | Linux 386/amd64/arm/arm64/mipsle/mips64le/riscv64/loong64 | CGO build, dynamically linked with glibc, requires glibc >= 2.31 (loong64: >= 2.36) | 
+| -musl | Linux 386/amd64/arm/arm64/mipsle/riscv64/loong64 | CGO build, statically linked with musl | 
+| (no suffix) | Windows amd64/arm64 | purego build, libcronet.dll included | 
 
-`libcronet.so``-glibc``-musl``libcronet.dll`Runtime Requirements:
+`libcronet.so``-glibc``-musl``libcronet.dll`For Linux, choose the glibc or musl variant based on your distribution's libc type.
+
+Runtime Requirements:
 
 - Linux purego: libcronet.so must be in the same directory as the sing-box binary or in system library path
 - Windows: libcronet.dll must be in the same directory as sing-box.exe or in a directory listed in PATH
@@ -12615,9 +12677,22 @@ List of authorized users for token authentication.
 
 If empty, no authentication is required.
 
-Claude Code authenticates by setting the ANTHROPIC_AUTH_TOKEN environment variable to their token value.
+Object format:
 
-`ANTHROPIC_AUTH_TOKEN`#### headers
+```
+{
+  "name": "",
+  "token": ""
+}
+
+```
+
+Object fields:
+
+- name: Username identifier for tracking purposes.
+- token: Bearer token for authentication. Claude Code authenticates by setting the ANTHROPIC_AUTH_TOKEN environment variable to their token value.
+
+`name``token``ANTHROPIC_AUTH_TOKEN`#### headers
 
 Custom HTTP headers to send to the Claude API.
 
@@ -12633,24 +12708,37 @@ TLS configuration, see TLS.
 
 ### Example
 
+#### Server
+
 ```
 {
   "services": [
     {
       "type": "ccm",
-      "listen": "127.0.0.1",
-      "listen_port": 8080
+      "listen": "0.0.0.0",
+      "listen_port": 8080,
+      "usages_path": "./claude-usages.json",
+      "users": [
+        {
+          "name": "alice",
+          "token": "ak-ccm-hello-world"
+        },
+        {
+          "name": "bob",
+          "token": "ak-ccm-hello-bob"
+        }
+      ]
     }
   ]
 }
 
 ```
 
-Connect to the CCM service:
+#### Client
 
 ```
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8080"
-export ANTHROPIC_AUTH_TOKEN="sk-ant-ccm-auth-token-not-required-in-this-context"
+export ANTHROPIC_AUTH_TOKEN="ak-ccm-hello-world"
 
 claude
 
@@ -12844,9 +12932,11 @@ See Listen Fields for details.
 
 Path to the OpenAI OAuth credentials file.
 
-If not specified, defaults to ~/.codex/auth.json.
+If not specified, defaults to:
+- $CODEX_HOME/auth.json if CODEX_HOME environment variable is set
+- ~/.codex/auth.json otherwise
 
-`~/.codex/auth.json`Refreshed tokens are automatically written back to the same location.
+`$CODEX_HOME/auth.json``CODEX_HOME``~/.codex/auth.json`Refreshed tokens are automatically written back to the same location.
 
 #### usages_path
 
@@ -12920,18 +13010,24 @@ TLS configuration, see TLS.
 Add to ~/.codex/config.toml:
 
 `~/.codex/config.toml````
+# profile = "ocm"                # set as default profile
+
 [model_providers.ocm]
 name = "OCM Proxy"
 base_url = "http://127.0.0.1:8080/v1"
-wire_api = "responses"
-requires_openai_auth = false
+supports_websockets = true
+
+[profiles.ocm]
+model_provider = "ocm"
+# model = "gpt-5.4"              # if the latest model is not yet publicly released
+# model_reasoning_effort = "xhigh"
 
 ```
 
 Then run:
 
 ```
-codex --model-provider ocm
+codex --profile ocm
 
 ```
 
@@ -12950,11 +13046,11 @@ codex --model-provider ocm
       "users": [
         {
           "name": "alice",
-          "token": "sk-alice-secret-token"
+          "token": "sk-ocm-hello-world"
         },
         {
           "name": "bob",
-          "token": "sk-bob-secret-token"
+          "token": "sk-ocm-hello-bob"
         }
       ]
     }
@@ -12968,19 +13064,25 @@ codex --model-provider ocm
 Add to ~/.codex/config.toml:
 
 `~/.codex/config.toml````
+# profile = "ocm"                # set as default profile
+
 [model_providers.ocm]
 name = "OCM Proxy"
 base_url = "http://127.0.0.1:8080/v1"
-wire_api = "responses"
-requires_openai_auth = false
-experimental_bearer_token = "sk-alice-secret-token"
+supports_websockets = true
+experimental_bearer_token = "sk-ocm-hello-world"
+
+[profiles.ocm]
+model_provider = "ocm"
+# model = "gpt-5.4"              # if the latest model is not yet publicly released
+# model_reasoning_effort = "xhigh"
 
 ```
 
 Then run:
 
 ```
-codex --model-provider ocm
+codex --profile ocm
 
 ```
 
@@ -15155,8 +15257,8 @@ NaiveProxy outbound requires special build configurations depending on your targ
 | Platform | Architectures | Mode | Requirements | 
 | --- | --- | --- | --- |
 | Linux | amd64, arm64 | purego | None (library included in official releases) | 
-| Linux | 386, amd64, arm, arm64 | CGO | Chromium toolchain, glibc >= 2.31 at runtime | 
-| Linux (musl) | 386, amd64, arm, arm64 | CGO | Chromium toolchain | 
+| Linux | 386, amd64, arm, arm64, mipsle, mips64le, riscv64, loong64 | CGO | Chromium toolchain, glibc >= 2.31 (loong64: >= 2.36) at runtime | 
+| Linux (musl) | 386, amd64, arm, arm64, mipsle, riscv64, loong64 | CGO | Chromium toolchain | 
 | Windows | amd64, arm64 | purego | None (library included in official releases) | 
 | Apple platforms | * | CGO | Xcode | 
 | Android | * | CGO | Android NDK | 
