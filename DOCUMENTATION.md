@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-15 02:13:46 UTC
+> Generated on: 2026-03-17 02:02:35 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -79,6 +79,10 @@
 
 ### Shared
 
+- [Certificate Provider](#certificate-provider)
+- [ACME](#acme)
+- [Cloudflare Origin CA](#cloudflare-origin-ca)
+- [Tailscale](#tailscale)
 - [Dial Fields](#dial-fields)
 - [DNS01 Challenge Fields](#dns01-challenge-fields)
 - [Listen Fields](#listen-fields)
@@ -193,7 +197,11 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.2
+#### 1.14.0-alpha.3
+
+- Fixes and improvements
+
+#### 1.13.3
 
 - Add OpenWrt and Alpine APK packages to release 1
 - Backport to macOS 10.13 High Sierra 2
@@ -217,7 +225,11 @@ from SagerNet/go.
 
 See OCM.
 
-#### 1.13.3-beta.1
+#### 1.12.24
+
+- Fixes and improvements
+
+#### 1.14.0-alpha.2
 
 - Add OpenWrt and Alpine APK packages to release 1
 - Backport to macOS 10.13 High Sierra 2
@@ -4554,6 +4566,10 @@ to get information about the connected Wi-Fi network to make them work.
 
 sing-box uses JSON for configuration files.
 
+Changes in sing-box 1.14.0
+
+certificate_providers
+
 ### Structure
 
 ```
@@ -4562,6 +4578,7 @@ sing-box uses JSON for configuration files.
   "dns": {},
   "ntp": {},
   "certificate": {},
+  "certificate_providers": [],
   "endpoints": [],
   "inbounds": [],
   "outbounds": [],
@@ -4580,6 +4597,7 @@ sing-box uses JSON for configuration files.
 | dns | DNS | 
 | ntp | NTP | 
 | certificate | Certificate | 
+| certificate_providers | Certificate Provider | 
 | endpoints | Endpoint | 
 | inbounds | Inbound | 
 | outbounds | Outbound | 
@@ -4587,7 +4605,13 @@ sing-box uses JSON for configuration files.
 | services | Service | 
 | experimental | Experimental | 
 
-`log``dns``ntp``certificate``endpoints``inbounds``outbounds``route``services``experimental`### Check
+`log``dns``ntp``certificate``certificate_providers``endpoints``inbounds``outbounds``route``services``experimental`#### certificate_providers
+
+Since sing-box 1.14.0
+
+List of shared Certificate Providers.
+
+### Check
 
 ```
 sing-box check
@@ -13202,6 +13226,312 @@ TLS configuration, see TLS.
 
 ---
 
+## Certificate Provider
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/certificate-provider/>
+
+Since sing-box 1.14.0
+
+# Certificate Provider
+
+### Structure
+
+```
+{
+  "certificate_providers": [
+    {
+      "type": "",
+      "tag": ""
+    }
+  ]
+}
+
+```
+
+### Fields
+
+| Type | Format | 
+| --- | --- |
+| acme | ACME | 
+| tailscale | Tailscale | 
+| cloudflare-origin-ca | Cloudflare Origin CA | 
+
+`acme``tailscale``cloudflare-origin-ca`#### tag
+
+The tag of the certificate provider.
+
+
+---
+
+## ACME
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/certificate-provider/acme/>
+
+Changes in sing-box 1.14.0
+
+account_key
+ key_type
+
+# ACME
+
+with_acme build tag required.
+
+`with_acme`### Structure
+
+```
+{
+  "type": "acme",
+  "tag": "",
+
+  "domain": [],
+  "data_directory": "",
+  "default_server_name": "",
+  "email": "",
+  "provider": "",
+  "account_key": "",
+  "disable_http_challenge": false,
+  "disable_tls_alpn_challenge": false,
+  "alternative_http_port": 0,
+  "alternative_tls_port": 0,
+  "external_account": {
+    "key_id": "",
+    "mac_key": ""
+  },
+  "dns01_challenge": {},
+  "key_type": ""
+}
+
+```
+
+### Fields
+
+#### domain
+
+Required
+
+List of domains.
+
+#### data_directory
+
+The directory to store ACME data.
+
+$XDG_DATA_HOME/certmagic|$HOME/.local/share/certmagic will be used if empty.
+
+`$XDG_DATA_HOME/certmagic|$HOME/.local/share/certmagic`#### default_server_name
+
+Server name to use when choosing a certificate if the ClientHello's ServerName field is empty.
+
+#### email
+
+The email address to use when creating or selecting an existing ACME server account.
+
+#### provider
+
+The ACME CA provider to use.
+
+| Value | Provider | 
+| --- | --- |
+| letsencrypt (default) | Let's Encrypt | 
+| zerossl | ZeroSSL | 
+| https://... | Custom | 
+
+`letsencrypt (default)``zerossl``https://...`When provider is zerossl, sing-box will automatically request ZeroSSL EAB credentials if email is set and
+external_account is empty.
+
+`provider``zerossl``email``external_account`When provider is zerossl, at least one of external_account, email, or account_key is required.
+
+`provider``zerossl``external_account``email``account_key`#### account_key
+
+Since sing-box 1.14.0
+
+The PEM-encoded private key of an existing ACME account.
+
+#### disable_http_challenge
+
+Disable all HTTP challenges.
+
+#### disable_tls_alpn_challenge
+
+Disable all TLS-ALPN challenges
+
+#### alternative_http_port
+
+The alternate port to use for the ACME HTTP challenge; if non-empty, this port will be used instead of 80 to spin up a
+listener for the HTTP challenge.
+
+#### alternative_tls_port
+
+The alternate port to use for the ACME TLS-ALPN challenge; the system must forward 443 to this port for challenge to
+succeed.
+
+#### external_account
+
+EAB (External Account Binding) contains information necessary to bind or map an ACME account to some other account known
+by the CA.
+
+External account bindings are used to associate an ACME account with an existing account in a non-ACME system, such as
+a CA customer database.
+
+To enable ACME account binding, the CA operating the ACME server needs to provide the ACME client with a MAC key and a
+key identifier, using some mechanism outside of ACME. §7.3.4
+
+#### external_account.key_id
+
+The key identifier.
+
+#### external_account.mac_key
+
+The MAC key.
+
+#### dns01_challenge
+
+ACME DNS01 challenge field. If configured, other challenge methods will be disabled.
+
+See DNS01 Challenge Fields for details.
+
+#### key_type
+
+Since sing-box 1.14.0
+
+The private key type to generate for new certificates.
+
+| Value | Type | 
+| --- | --- |
+| ed25519 | Ed25519 | 
+| p256 | P-256 | 
+| p384 | P-384 | 
+| rsa2048 | RSA | 
+| rsa4096 | RSA | 
+
+`ed25519``p256``p384``rsa2048``rsa4096`
+---
+
+## Cloudflare Origin CA
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/certificate-provider/cloudflare-origin-ca/>
+
+Since sing-box 1.14.0
+
+# Cloudflare Origin CA
+
+### Structure
+
+```
+{
+  "type": "cloudflare-origin-ca",
+  "tag": "",
+
+  "domain": [],
+  "data_directory": "",
+  "api_token": "",
+  "origin_ca_key": "",
+  "request_type": "",
+  "requested_validity": 0,
+  "renew_before": "",
+  "request_timeout": ""
+}
+
+```
+
+### Fields
+
+#### domain
+
+Required
+
+List of domain names or wildcard domain names to include in the certificate.
+
+#### data_directory
+
+Root directory used to store the issued certificate, private key, and metadata.
+
+If empty, sing-box uses the same default data directory as the ACME certificate provider:
+$XDG_DATA_HOME/certmagic or $HOME/.local/share/certmagic.
+
+`$XDG_DATA_HOME/certmagic``$HOME/.local/share/certmagic`#### api_token
+
+Cloudflare API token used to create the certificate.
+
+Get or create one in Cloudflare Dashboard > My Profile > API Tokens.
+
+Requires the Zone / SSL and Certificates / Edit permission.
+
+`Zone / SSL and Certificates / Edit`Conflict with origin_ca_key.
+
+`origin_ca_key`#### origin_ca_key
+
+Cloudflare Origin CA Key.
+
+Get it in Cloudflare Dashboard > My Profile > API Tokens > API Keys > Origin CA Key.
+
+Conflict with api_token.
+
+`api_token`#### request_type
+
+The signature type to request from Cloudflare.
+
+| Value | Type | 
+| --- | --- |
+| origin-rsa | RSA | 
+| origin-ecc | ECDSA P-256 | 
+
+`origin-rsa``origin-ecc`origin-rsa is used if empty.
+
+`origin-rsa`#### requested_validity
+
+The requested certificate validity in days.
+
+Available values: 7, 30, 90, 365, 730, 1095, 5475.
+
+`7``30``90``365``730``1095``5475`5475 is used if empty.
+
+`5475`#### renew_before
+
+How long before expiration sing-box should request a replacement certificate.
+
+If empty, the smaller of 30d and one third of the certificate lifetime is used.
+
+`30d`#### request_timeout
+
+HTTP timeout for requests to the Cloudflare API.
+
+30s is used if empty.
+
+`30s`
+---
+
+## Tailscale
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/certificate-provider/tailscale/>
+
+Since sing-box 1.14.0
+
+# Tailscale
+
+### Structure
+
+```
+{
+  "type": "tailscale",
+  "tag": "ts-cert",
+  "endpoint": "ts-ep"
+}
+
+```
+
+### Fields
+
+#### endpoint
+
+Required
+
+The tag of the Tailscale endpoint to reuse.
+
+MagicDNS and HTTPS must be enabled in the Tailscale admin console.
+
+
+---
+
 ## Dial Fields
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/shared/dial/>
@@ -13462,6 +13792,14 @@ domain_strategy is deprecated and will be removed in sing-box 1.14.0, check Migr
 
 # DNS01 Challenge Fields
 
+Changes in sing-box 1.14.0
+
+ttl
+ propagation_delay
+ propagation_timeout
+ resolvers
+ override_domain
+
 Changes in sing-box 1.13.0
 
 alidns.security_token
@@ -13472,12 +13810,57 @@ alidns.security_token
 
 ```
 {
+  "ttl": "",
+  "propagation_delay": "",
+  "propagation_timeout": "",
+  "resolvers": [],
+  "override_domain": "",
   "provider": "",
 
   ... // Provider Fields
 }
 
 ```
+
+### Fields
+
+#### ttl
+
+Since sing-box 1.14.0
+
+The TTL of the temporary TXT record used for the DNS challenge.
+
+#### propagation_delay
+
+Since sing-box 1.14.0
+
+How long to wait after creating the challenge record before starting propagation checks.
+
+#### propagation_timeout
+
+Since sing-box 1.14.0
+
+The maximum time to wait for the challenge record to propagate.
+
+Set to -1 to disable propagation checks.
+
+`-1`#### resolvers
+
+Since sing-box 1.14.0
+
+Preferred DNS resolvers to use for DNS propagation checks.
+
+#### override_domain
+
+Since sing-box 1.14.0
+
+Override the domain name used for the DNS challenge record.
+
+Useful when _acme-challenge is delegated to a different zone.
+
+`_acme-challenge`#### provider
+
+The DNS provider. See below for provider-specific fields.
 
 ### Provider Fields
 
@@ -13987,6 +14370,11 @@ Upload and download bandwidth, in Mbps.
 
 # TLS
 
+Changes in sing-box 1.14.0
+
+certificate_provider
+ acme
+
 Changes in sing-box 1.13.0
 
 kernel_tx
@@ -14034,6 +14422,10 @@ utls
   "key_path": "",
   "kernel_tx": false,
   "kernel_rx": false,
+  "certificate_provider": "",
+
+  // Deprecated
+
   "acme": {
     "domain": [],
     "data_directory": "",
@@ -14376,6 +14768,14 @@ kTLS RX will definitely degrade performance even if splice(2) is in use, so enab
 
 `splice(2)`Enable kernel TLS receive support.
 
+#### certificate_provider
+
+Since sing-box 1.14.0
+
+Server only
+
+Certificate provider configuration, see Certificate Provider Fields.
+
 ## Custom TLS support
 
 QUIC support
@@ -14437,7 +14837,7 @@ The ECH key and configuration can be generated by sing-box generate ech-keypair.
 
 Deprecated in sing-box 1.12.0
 
-ECH support has been migrated to use stdlib in sing-box 1.12.0, which does not come with support for PQ signature schemes, so pq_signature_schemes_enabled has been deprecated and no longer works.
+pq_signature_schemes_enabled is deprecated in sing-box 1.12.0 and removed in sing-box 1.13.0.
 
 `pq_signature_schemes_enabled`Enable support for post-quantum peer certificate signature schemes.
 
@@ -14445,7 +14845,7 @@ ECH support has been migrated to use stdlib in sing-box 1.12.0, which does not c
 
 Deprecated in sing-box 1.12.0
 
-dynamic_record_sizing_disabled has nothing to do with ECH, was added by mistake, has been deprecated and no longer works.
+dynamic_record_sizing_disabled is deprecated in sing-box 1.12.0 and removed in sing-box 1.13.0.
 
 `dynamic_record_sizing_disabled`Disables adaptive sizing of TLS records.
 
@@ -14531,6 +14931,10 @@ Client only
 Fragment TLS handshake into multiple TLS records to bypass firewalls.
 
 ### ACME Fields
+
+Deprecated in sing-box 1.14.0
+
+Inline ACME options are deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0, check Migration.
 
 #### domain
 
@@ -15029,6 +15433,16 @@ Uses Windows WLAN API.
 
 # Deprecated Feature List
 
+## 1.14.0
+
+#### Inline ACME options in TLS
+
+Inline ACME options (tls.acme) are deprecated
+and can be replaced by the ACME certificate provider,
+check Migration.
+
+`tls.acme`Old fields will be removed in sing-box 1.16.0.
+
 ## 1.12.0
 
 #### Legacy DNS server formats
@@ -15053,7 +15467,7 @@ so pq_signature_schemes_enabled has been deprecated and no longer works.
 `pq_signature_schemes_enabled`Also, dynamic_record_sizing_disabled has nothing to do with ECH,
 was added by mistake, has been deprecated and no longer works.
 
-`dynamic_record_sizing_disabled`These fields will be removed in sing-box 1.13.0.
+`dynamic_record_sizing_disabled`These fields were removed in sing-box 1.13.0.
 
 ## 1.11.0
 
@@ -15063,7 +15477,7 @@ Legacy special outbounds (block / dns) are deprecated
 and can be replaced by rule actions,
 check Migration.
 
-`block``dns`Old fields will be removed in sing-box 1.13.0.
+`block``dns`Old fields were removed in sing-box 1.13.0.
 
 #### Legacy inbound fields
 
@@ -15071,7 +15485,7 @@ Legacy inbound fields （inbound.<sniff/domain_strategy/...> are deprecated
 and can be replaced by rule actions,
 check Migration.
 
-`inbound.<sniff/domain_strategy/...>`Old fields will be removed in sing-box 1.13.0.
+`inbound.<sniff/domain_strategy/...>`Old fields were removed in sing-box 1.13.0.
 
 #### Destination override fields in direct outbound
 
@@ -15079,18 +15493,20 @@ Destination override fields (override_address / override_port) in direct outboun
 and can be replaced by rule actions,
 check Migration.
 
-`override_address``override_port`#### WireGuard outbound
+`override_address``override_port`Old fields were removed in sing-box 1.13.0.
+
+#### WireGuard outbound
 
 WireGuard outbound is deprecated and can be replaced by endpoint,
 check Migration.
 
-Old outbound will be removed in sing-box 1.13.0.
+Old outbound was removed in sing-box 1.13.0.
 
 #### GSO option in TUN
 
 GSO has no advantages for transparent proxy scenarios, is deprecated and no longer works in TUN.
 
-Old fields will be removed in sing-box 1.13.0.
+Old fields were removed in sing-box 1.13.0.
 
 ## 1.10.0
 
@@ -15100,12 +15516,12 @@ inet4_address and inet6_address are merged into address,
 inet4_route_address and inet6_route_address are merged into route_address,
 inet4_route_exclude_address and inet6_route_exclude_address are merged into route_exclude_address.
 
-`inet4_address``inet6_address``address``inet4_route_address``inet6_route_address``route_address``inet4_route_exclude_address``inet6_route_exclude_address``route_exclude_address`Old fields will be removed in sing-box 1.12.0.
+`inet4_address``inet6_address``address``inet4_route_address``inet6_route_address``route_address``inet4_route_exclude_address``inet6_route_exclude_address``route_exclude_address`Old fields were removed in sing-box 1.12.0.
 
 #### Match source rule items are renamed
 
 rule_set_ipcidr_match_source route and DNS rule items are renamed to
-rule_set_ip_cidr_match_source and will be remove in sing-box 1.11.0.
+rule_set_ip_cidr_match_source and were removed in sing-box 1.11.0.
 
 `rule_set_ipcidr_match_source``rule_set_ip_cidr_match_source`#### Drop support for go1.18 and go1.19
 
@@ -15120,7 +15536,7 @@ check Migration.
 
 `cache_file``cache_file`#### GeoIP
 
-GeoIP is deprecated and will be removed in sing-box 1.12.0.
+GeoIP is deprecated and was removed in sing-box 1.12.0.
 
 The maxmind GeoIP National Database, as an IP classification database,
 is not entirely suitable for traffic bypassing,
@@ -15131,7 +15547,7 @@ check Migration.
 
 #### Geosite
 
-Geosite is deprecated and will be removed in sing-box 1.12.0.
+Geosite is deprecated and was removed in sing-box 1.12.0.
 
 Geosite, the domain-list-community project maintained by V2Ray as an early traffic bypassing solution,
 suffers from a number of problems, including lack of maintenance, inaccurate rules, and difficult management.
@@ -16509,6 +16925,80 @@ of recommended protocols for bypassing GFW.
 **Source URL**: <https://sing-box.sagernet.org/migration/>
 
 # Migration
+
+## 1.14.0
+
+### Migrate inline ACME to certificate provider
+
+Inline ACME options in TLS are deprecated and can be replaced by certificate providers.
+
+Most tls.acme fields can be moved into the ACME certificate provider unchanged.
+See ACME for fields newly added in sing-box 1.14.0.
+
+`tls.acme`References
+
+TLS /
+Certificate Provider
+
+```
+{
+  "inbounds": [
+    {
+      "type": "trojan",
+      "tls": {
+        "enabled": true,
+        "acme": {
+          "domain": ["example.com"],
+          "email": "[email protected]"
+        }
+      }
+    }
+  ]
+}
+
+```
+
+```
+{
+  "inbounds": [
+    {
+      "type": "trojan",
+      "tls": {
+        "enabled": true,
+        "certificate_provider": {
+          "type": "acme",
+          "domain": ["example.com"],
+          "email": "[email protected]"
+        }
+      }
+    }
+  ]
+}
+
+```
+
+```
+{
+  "certificate_providers": [
+    {
+      "type": "acme",
+      "tag": "my-cert",
+      "domain": ["example.com"],
+      "email": "[email protected]"
+    }
+  ],
+  "inbounds": [
+    {
+      "type": "trojan",
+      "tls": {
+        "enabled": true,
+        "certificate_provider": "my-cert"
+      }
+    }
+  ]
+}
+
+```
 
 ## 1.12.0
 
