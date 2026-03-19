@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-17 02:02:35 UTC
+> Generated on: 2026-03-19 02:07:49 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -4566,10 +4566,6 @@ to get information about the connected Wi-Fi network to make them work.
 
 sing-box uses JSON for configuration files.
 
-Changes in sing-box 1.14.0
-
-certificate_providers
-
 ### Structure
 
 ```
@@ -4605,13 +4601,7 @@ certificate_providers
 | services | Service | 
 | experimental | Experimental | 
 
-`log``dns``ntp``certificate``certificate_providers``endpoints``inbounds``outbounds``route``services``experimental`#### certificate_providers
-
-Since sing-box 1.14.0
-
-List of shared Certificate Providers.
-
-### Check
+`log``dns``ntp``certificate``certificate_providers``endpoints``inbounds``outbounds``route``services``experimental`### Check
 
 ```
 sing-box check
@@ -13271,6 +13261,7 @@ Changes in sing-box 1.14.0
 
 account_key
  key_type
+ detour
 
 # ACME
 
@@ -13298,7 +13289,8 @@ with_acme build tag required.
     "mac_key": ""
   },
   "dns01_challenge": {},
-  "key_type": ""
+  "key_type": "",
+  "detour": ""
 }
 
 ```
@@ -13403,7 +13395,15 @@ The private key type to generate for new certificates.
 | rsa2048 | RSA | 
 | rsa4096 | RSA | 
 
-`ed25519``p256``p384``rsa2048``rsa4096`
+`ed25519``p256``p384``rsa2048``rsa4096`#### detour
+
+Since sing-box 1.14.0
+
+The tag of the upstream outbound.
+
+All provider HTTP requests will use this outbound.
+
+
 ---
 
 ## Cloudflare Origin CA
@@ -13426,9 +13426,7 @@ Since sing-box 1.14.0
   "api_token": "",
   "origin_ca_key": "",
   "request_type": "",
-  "requested_validity": 0,
-  "renew_before": "",
-  "request_timeout": ""
+  "detour": ""
 }
 
 ```
@@ -13483,21 +13481,15 @@ The requested certificate validity in days.
 
 Available values: 7, 30, 90, 365, 730, 1095, 5475.
 
-`7``30``90``365``730``1095``5475`5475 is used if empty.
+`7``30``90``365``730``1095``5475`5475 days (15 years) is used if empty.
 
-`5475`#### renew_before
+`5475`#### detour
 
-How long before expiration sing-box should request a replacement certificate.
+The tag of the upstream outbound.
 
-If empty, the smaller of 30d and one third of the certificate lifetime is used.
+All provider HTTP requests will use this outbound.
 
-`30d`#### request_timeout
 
-HTTP timeout for requests to the Cloudflare API.
-
-30s is used if empty.
-
-`30s`
 ---
 
 ## Tailscale
@@ -14774,7 +14766,11 @@ Since sing-box 1.14.0
 
 Server only
 
-Certificate provider configuration, see Certificate Provider Fields.
+A string or an object.
+
+When string, the tag of a shared Certificate Provider.
+
+When object, an inline certificate provider. See Certificate Provider for available types and fields.
 
 ## Custom TLS support
 
