@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-23 02:08:57 UTC
+> Generated on: 2026-03-25 02:06:34 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -197,7 +197,26 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.3
+#### 1.14.0-alpha.4
+
+- Refactor ACME support to certificate provider system 1
+- Add Cloudflare Origin CA certificate provider 2
+- Add Tailscale certificate provider 3
+- Fixes and improvements
+
+1:
+
+See Certificate Provider and Migration.
+
+2:
+
+See Cloudflare Origin CA.
+
+3:
+
+See Tailscale.
+
+#### 1.13.4-beta.1
 
 - Fixes and improvements
 
@@ -13426,6 +13445,7 @@ Since sing-box 1.14.0
   "api_token": "",
   "origin_ca_key": "",
   "request_type": "",
+  "requested_validity": 0,
   "detour": ""
 }
 
