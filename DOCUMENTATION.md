@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-03-29 02:15:46 UTC
+> Generated on: 2026-03-31 02:14:07 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -197,6 +197,31 @@ with this application without prior consent.
 
 # Change Log
 
+#### 1.14.0-alpha.8
+
+- Add BBR profile and hop interval randomization for Hysteria2 1
+- Fixes and improvements
+
+1:
+
+See Hysteria2 Inbound and Hysteria2 Outbound.
+
+#### 1.14.0-alpha.8
+
+- Fixes and improvements
+
+#### 1.13.5
+
+- Fixes and improvements
+
+#### 1.14.0-alpha.7
+
+- Fixes and improvements
+
+#### 1.13.4
+
+- Fixes and improvements
+
 #### 1.14.0-alpha.4
 
 - Refactor ACME support to certificate provider system 1
@@ -215,10 +240,6 @@ See Cloudflare Origin CA.
 3:
 
 See Tailscale.
-
-#### 1.13.4-beta.1
-
-- Fixes and improvements
 
 #### 1.13.3
 
@@ -5055,7 +5076,7 @@ The default rule uses the following matching logic:
 (source_port || source_port_range) &&
 other fields
 
-`domain``domain_suffix``domain_keyword``domain_regex``geosite``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, included rule-sets can be considered merged rather than as a single rule sub-item.
+`domain``domain_suffix``domain_keyword``domain_regex``geosite``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, each branch inside an included rule-set can be considered merged into the outer rule, while different branches keep OR semantics.
 
 #### inbound
 
@@ -7541,6 +7562,10 @@ TLS configuration, see TLS.
 
 # Hysteria2
 
+Changes in sing-box 1.14.0
+
+bbr_profile
+
 Changes in sing-box 1.11.0
 
 masquerade
@@ -7570,6 +7595,7 @@ masquerade
   "ignore_client_bandwidth": false,
   "tls": {},
   "masquerade": "", // or {}
+  "bbr_profile": "",
   "brutal_debug": false
 }
 
@@ -7681,7 +7707,15 @@ Fixed response headers.
 
 Fixed response content.
 
-#### brutal_debug
+#### bbr_profile
+
+Since sing-box 1.14.0
+
+BBR congestion control algorithm profile, one of conservative standard aggressive.
+
+`conservative``standard``aggressive`standard is used by default.
+
+`standard`#### brutal_debug
 
 Enable debug information logging for Hysteria Brutal CC.
 
@@ -9608,6 +9642,11 @@ See Dial Fields for details.
 
 # Hysteria2
 
+Changes in sing-box 1.14.0
+
+hop_interval_max
+ bbr_profile
+
 Changes in sing-box 1.11.0
 
 server_ports
@@ -9626,6 +9665,7 @@ server_ports
     "2080:3000"
   ],
   "hop_interval": "",
+  "hop_interval_max": "",
   "up_mbps": 100,
   "down_mbps": 100,
   "obfs": {
@@ -9635,6 +9675,7 @@ server_ports
   "password": "goofy_ahh_password",
   "network": "tcp",
   "tls": {},
+  "bbr_profile": "",
   "brutal_debug": false,
 
   ... // Dial Fields
@@ -9684,7 +9725,15 @@ Port hopping interval.
 
 30s is used by default.
 
-`30s`#### up_mbps, down_mbps
+`30s`#### hop_interval_max
+
+Since sing-box 1.14.0
+
+Maximum port hopping interval, used for randomization.
+
+If set, the actual hop interval will be randomly chosen between hop_interval and hop_interval_max.
+
+`hop_interval``hop_interval_max`#### up_mbps, down_mbps
 
 Max bandwidth, in Mbps.
 
@@ -9718,7 +9767,15 @@ Required
 
 TLS configuration, see TLS.
 
-#### brutal_debug
+#### bbr_profile
+
+Since sing-box 1.14.0
+
+BBR congestion control algorithm profile, one of conservative standard aggressive.
+
+`conservative``standard``aggressive`standard is used by default.
+
+`standard`#### brutal_debug
 
 Enable debug information logging for Hysteria Brutal CC.
 
@@ -11404,7 +11461,7 @@ The default rule uses the following matching logic:
 (source_port || source_port_range) &&
 other fields
 
-`domain``domain_suffix``domain_keyword``domain_regex``geosite``geoip``ip_cidr``ip_is_private``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, included rule-sets can be considered merged rather than as a single rule sub-item.
+`domain``domain_suffix``domain_keyword``domain_regex``geosite``geoip``ip_cidr``ip_is_private``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, each branch inside an included rule-set can be considered merged into the outer rule, while different branches keep OR semantics.
 
 #### inbound
 
