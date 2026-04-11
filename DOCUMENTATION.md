@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-09 02:09:18 UTC
+> Generated on: 2026-04-11 02:08:25 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -36,6 +36,7 @@
 
 - [Inbound](#inbound)
 - [AnyTLS](#anytls)
+- [Cloudflared](#cloudflared)
 - [Direct](#direct)
 - [HTTP](#http)
 - [Hysteria](#hysteria)
@@ -196,6 +197,65 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.10
+
+- Add evaluate DNS rule action and Response Match Fields 1
+- ip_version and query_type now also take effect on internal DNS lookups 2
+- Add package_name_regex route, DNS and headless rule item 3
+- Add cloudflared inbound 4
+- Fixes and improvements
+
+`evaluate``ip_version``query_type``package_name_regex`1:
+
+Response Match Fields
+(response_rcode,
+response_answer,
+response_ns,
+and response_extra)
+match the evaluated DNS response. They are gated by the new
+match_response field and
+populated by a preceding
+evaluate DNS rule action;
+the evaluated response can also be returned directly by a
+respond action.
+
+`response_rcode``response_answer``response_ns``response_extra``match_response``evaluate``respond`This deprecates the Legacy Address Filter Fields (ip_cidr,
+ip_is_private without match_response) in DNS rules, the Legacy
+strategy DNS rule action option, and the Legacy
+rule_set_ip_cidr_accept_empty DNS rule item; all three will be removed
+in sing-box 1.16.0.
+See Migration.
+
+`ip_cidr``ip_is_private``match_response``strategy``rule_set_ip_cidr_accept_empty`2:
+
+ip_version and query_type in DNS rules, together with query_type in
+referenced rule-sets, now take effect on every DNS rule evaluation,
+including matches from internal domain resolutions that do not target a
+specific DNS server (for example a resolve route rule action without
+server set). In earlier versions they were silently ignored in that
+path. Combining these fields with any of the legacy DNS fields deprecated
+in 1 in the same DNS configuration is no longer supported and is
+rejected at startup.
+See Migration.
+
+`ip_version``query_type``query_type``resolve``server`3:
+
+See Route Rule,
+DNS Rule and
+Headless Rule.
+
+4:
+
+See Cloudflared.
+
+#### 1.13.7
+
+- Fixes and improvement
+
+#### 1.13.6
+
+- Fixes and improvements
 
 #### 1.14.0-alpha.8
 
@@ -2244,7 +2304,7 @@ See Migration.
 The new DNS feature allows you to more precisely bypass Chinese websites via DNS leaks. Do not use plain local DNS
 if using this method.
 
-See Address Filter Fields.
+See Legacy Address Filter Fields.
 
 Client example updated.
 
@@ -2258,7 +2318,7 @@ the Client example has been updated.
 `alpha.1`5:
 
 The new feature allows you to cache the check results of
-Address filter DNS rule items until expiration.
+Legacy Address Filter Fields until expiration.
 
 6:
 
@@ -2439,7 +2499,7 @@ See TUN inbound.
 1:
 
 The new feature allows you to cache the check results of
-Address filter DNS rule items until expiration.
+Legacy Address Filter Fields until expiration.
 
 #### 1.9.0-alpha.7
 
@@ -2486,7 +2546,7 @@ See Migration.
 The new DNS feature allows you to more precisely bypass Chinese websites via DNS leaks. Do not use plain local DNS
 if using this method.
 
-See Address Filter Fields.
+See Legacy Address Filter Fields.
 
 Client example updated.
 
@@ -4376,12 +4436,13 @@ SFA provides an unprivileged TUN implementation through Android VpnService.
 | process_path |  | No permission | 
 | process_path_regex |  | No permission | 
 | package_name |  | / | 
+| package_name_regex |  | / | 
 | user |  | Use package_name instead | 
 | user_id |  | Use package_name instead | 
 | wifi_ssid |  | Fine location permission required | 
 | wifi_bssid |  | Fine location permission required | 
 
-`process_name``process_path``process_path_regex``package_name``user``package_name``user_id``package_name``wifi_ssid``wifi_bssid`### Override
+`process_name``process_path``process_path_regex``package_name``package_name_regex``user``package_name``user_id``package_name``wifi_ssid``wifi_bssid`### Override
 
 Overrides profile configuration items with platform-specific values.
 
@@ -4496,12 +4557,13 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 | process_path |  | No permission | 
 | process_path_regex |  | No permission | 
 | package_name |  | / | 
+| package_name_regex |  | / | 
 | user |  | No permission | 
 | user_id |  | No permission | 
 | wifi_ssid |  | Only supported on iOS | 
 | wifi_bssid |  | Only supported on iOS | 
 
-`process_name``process_path``process_path_regex``package_name``user``user_id``wifi_ssid``wifi_bssid`### Chore
+`process_name``process_path``process_path_regex``package_name``package_name_regex``user``user_id``wifi_ssid``wifi_bssid`### Chore
 
 - Crash logs is located in Settings -> View Service Log
 
@@ -4764,7 +4826,7 @@ cache_capacity
 | --- | --- |
 | server | List of DNS Server | 
 | rules | List of DNS Rule | 
-| fakeip | FakeIP | 
+| fakeip |  FakeIP | 
 
 `server``rules``fakeip`#### final
 
@@ -4813,7 +4875,7 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
 
-`/32``/128`Can be overrides by servers.[].client_subnet or rules.[].client_subnet.
+`/32``/128`Can be overridden by servers.[].client_subnet or rules.[].client_subnet.
 
 `servers.[].client_subnet``rules.[].client_subnet`
 ---
@@ -4824,9 +4886,9 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 # FakeIP
 
-Deprecated in sing-box 1.12.0
+Removed in sing-box 1.14.0
 
-Legacy fake-ip configuration is deprecated and will be removed in sing-box 1.14.0, check Migration.
+Legacy fake-ip configuration is deprecated in sing-box 1.12.0 and removed in sing-box 1.14.0, check Migration.
 
 ### Structure
 
@@ -4849,7 +4911,7 @@ Enable FakeIP service.
 
 IPv4 address range for FakeIP.
 
-#### inet6_address
+#### inet6_range
 
 IPv6 address range for FakeIP.
 
@@ -4866,6 +4928,15 @@ Changes in sing-box 1.14.0
 
 source_mac_address
  source_hostname
+ match_response
+ rule_set_ip_cidr_accept_empty
+ response_rcode
+ response_answer
+ response_ns
+ response_extra
+ package_name_regex
+ ip_version
+ query_type
 
 Changes in sing-box 1.13.0
 
@@ -4954,12 +5025,6 @@ rule_set
           "192.168.0.1"
         ],
         "source_ip_is_private": false,
-        "ip_cidr": [
-          "10.0.0.0/24",
-          "192.168.0.1"
-        ],
-        "ip_is_private": false,
-        "ip_accept_any": false,
         "source_port": [
           12345
         ],
@@ -4988,6 +5053,9 @@ rule_set
         ],
         "package_name": [
           "com.termux"
+        ],
+        "package_name_regex": [
+          "^com\\.termux.*"
         ],
         "user": [
           "sekai"
@@ -5031,7 +5099,17 @@ rule_set
           "geosite-cn"
         ],
         "rule_set_ip_cidr_match_source": false,
-        "rule_set_ip_cidr_accept_empty": false,
+        "match_response": false,
+        "ip_cidr": [
+          "10.0.0.0/24",
+          "192.168.0.1"
+        ],
+        "ip_is_private": false,
+        "ip_accept_any": false,
+        "response_rcode": "",
+        "response_answer": [],
+        "response_ns": [],
+        "response_extra": [],
         "invert": false,
         "outbound": [
           "direct"
@@ -5041,6 +5119,7 @@ rule_set
 
         // Deprecated
 
+        "rule_set_ip_cidr_accept_empty": false,
         "rule_set_ipcidr_match_source": false,
         "geosite": [
           "cn"
@@ -5084,13 +5163,47 @@ Tags of Inbound.
 
 #### ip_version
 
-4 (A DNS query) or 6 (AAAA DNS query).
+Changes in sing-box 1.14.0
+
+This field now also applies when a DNS rule is matched from an internal
+domain resolution that does not target a specific DNS server, such as a
+resolve route rule action without a
+server set. In earlier versions, only DNS queries received from a
+client evaluated this field. See
+Migration
+for the full list.
+
+`resolve``server`Setting this field makes the DNS rule incompatible in the same DNS
+configuration with Legacy Address Filter Fields in DNS rules, the Legacy
+strategy DNS rule action option, and the Legacy
+rule_set_ip_cidr_accept_empty DNS rule item. To combine with
+address-based filtering, use the evaluate
+action and match_response.
+
+`strategy``rule_set_ip_cidr_accept_empty``evaluate``match_response`4 (A DNS query) or 6 (AAAA DNS query).
 
 Not limited if empty.
 
 #### query_type
 
-DNS query type. Values can be integers or type name strings.
+Changes in sing-box 1.14.0
+
+This field now also applies when a DNS rule is matched from an internal
+domain resolution that does not target a specific DNS server, such as a
+resolve route rule action without a
+server set. In earlier versions, only DNS queries received from a
+client evaluated this field. See
+Migration
+for the full list.
+
+`resolve``server`Setting this field makes the DNS rule incompatible in the same DNS
+configuration with Legacy Address Filter Fields in DNS rules, the Legacy
+strategy DNS rule action option, and the Legacy
+rule_set_ip_cidr_accept_empty DNS rule item. To combine with
+address-based filtering, use the evaluate
+action and match_response.
+
+`strategy``rule_set_ip_cidr_accept_empty``evaluate``match_response`DNS query type. Values can be integers or type name strings.
 
 #### network
 
@@ -5185,6 +5298,12 @@ Match process path using regular expression.
 #### package_name
 
 Match android package name.
+
+#### package_name_regex
+
+Since sing-box 1.14.0
+
+Match android package name using regular expression.
 
 #### user
 
@@ -5303,7 +5422,26 @@ Since sing-box 1.10.0
 
 Make ip_cidr rule items in rule-sets match the source IP.
 
-`ip_cidr`#### invert
+`ip_cidr`#### match_response
+
+Since sing-box 1.14.0
+
+Enable response-based matching. When enabled, this rule matches against the evaluated response
+(set by a preceding evaluate action)
+instead of only matching the original query.
+
+`evaluate`The evaluated response can also be returned directly by a later respond action.
+
+`respond`Required for Response Match Fields (response_rcode, response_answer, response_ns, response_extra).
+Also required for ip_cidr, ip_is_private, and ip_accept_any when used with evaluate or Response Match Fields.
+
+`response_rcode``response_answer``response_ns``response_extra``ip_cidr``ip_is_private``ip_accept_any``evaluate`#### ip_accept_any
+
+Since sing-box 1.12.0
+
+Match when the DNS query response contains at least one address.
+
+#### invert
 
 Invert match result.
 
@@ -5347,7 +5485,12 @@ Deprecated in sing-box 1.11.0
 
 Moved to DNS Rule Action.
 
-### Address Filter Fields
+### Legacy Address Filter Fields
+
+Deprecated in sing-box 1.14.0
+
+Legacy Address Filter Fields are deprecated and will be removed in sing-box 1.16.0,
+check Migration.
 
 Only takes effect for address requests (A/AAAA/HTTPS). When the query results do not match the address filtering rule items, the current rule will be skipped.
 
@@ -5369,23 +5512,61 @@ Since sing-box 1.9.0
 
 Match IP CIDR with query response.
 
-#### ip_is_private
+As a Legacy Address Filter Field, deprecated. Use with match_response instead,
+check Migration.
+
+`match_response`#### ip_is_private
 
 Since sing-box 1.9.0
 
 Match private IP with query response.
 
-#### rule_set_ip_cidr_accept_empty
+As a Legacy Address Filter Field, deprecated. Use with match_response instead,
+check Migration.
+
+`match_response`#### rule_set_ip_cidr_accept_empty
 
 Since sing-box 1.10.0
 
-Make ip_cidr rules in rule-sets accept empty query response.
+Deprecated in sing-box 1.14.0
 
-`ip_cidr`#### ip_accept_any
+rule_set_ip_cidr_accept_empty is deprecated and will be removed in sing-box 1.16.0,
+check Migration.
 
-Since sing-box 1.12.0
+`rule_set_ip_cidr_accept_empty`Make ip_cidr rules in rule-sets accept empty query response.
 
-Match any IP with query response.
+`ip_cidr`### Response Match Fields
+
+Since sing-box 1.14.0
+
+Match fields for the evaluated response. Require match_response to be set to true
+and a preceding rule with evaluate action to populate the response.
+
+`match_response``true``evaluate`That evaluated response may also be returned directly by a later respond action.
+
+`respond`#### response_rcode
+
+Match DNS response code.
+
+Accepted values are the same as in the predefined action rcode.
+
+#### response_answer
+
+Match DNS answer records.
+
+Record format is the same as in predefined action answer.
+
+#### response_ns
+
+Match DNS name server records.
+
+Record format is the same as in predefined action ns.
+
+#### response_extra
+
+Match DNS extra records.
+
+Record format is the same as in predefined action extra.
 
 ### Logical Fields
 
@@ -5409,6 +5590,12 @@ Included rules.
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/rule_action/>
 
 # DNS Rule Action
+
+Changes in sing-box 1.14.0
+
+strategy
+ evaluate
+ respond
 
 Changes in sing-box 1.12.0
 
@@ -5443,7 +5630,11 @@ Tag of target server.
 
 Since sing-box 1.12.0
 
-Set domain strategy for this query.
+Deprecated in sing-box 1.14.0
+
+strategy is deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0.
+
+`strategy`Set domain strategy for this query.
 
 One of prefer_ipv4 prefer_ipv6 ipv4_only ipv6_only.
 
@@ -5461,9 +5652,72 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
 
-`/32``/128`Will overrides dns.client_subnet.
+`/32``/128`Will override dns.client_subnet.
 
-`dns.client_subnet`### route-options
+`dns.client_subnet`### evaluate
+
+Since sing-box 1.14.0
+
+```
+{
+  "action": "evaluate",
+  "server": "",
+  "disable_cache": false,
+  "rewrite_ttl": null,
+  "client_subnet": null
+}
+
+```
+
+evaluate sends a DNS query to the specified server and saves the evaluated response for subsequent rules
+to match against using match_response and response fields.
+Unlike route, it does not terminate rule evaluation.
+
+`evaluate``match_response``route`Only allowed on top-level DNS rules (not inside logical sub-rules).
+Rules that use match_response or Response Match Fields
+require a preceding top-level rule with evaluate action. A rule's own evaluate action
+does not satisfy this requirement, because matching happens before the action runs.
+
+`match_response``evaluate``evaluate`#### server
+
+Required
+
+Tag of target server.
+
+#### disable_cache
+
+Disable cache and save cache in this query.
+
+#### rewrite_ttl
+
+Rewrite TTL in DNS responses.
+
+#### client_subnet
+
+Append a edns0-subnet OPT extra record with the specified IP prefix to every query by default.
+
+`edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
+
+`/32``/128`Will override dns.client_subnet.
+
+`dns.client_subnet`### respond
+
+Since sing-box 1.14.0
+
+```
+{
+  "action": "respond"
+}
+
+```
+
+respond terminates rule evaluation and returns the evaluated response from a preceding evaluate action.
+
+`respond``evaluate`This action does not send a new DNS query and has no extra options.
+
+Only allowed after a preceding top-level evaluate rule. If the action is reached without an evaluated response at runtime, the request fails with an error instead of falling through to later rules.
+
+`evaluate`### route-options
 
 ```
 {
@@ -5590,7 +5844,7 @@ The type of the DNS server.
 
 | Type | Format | 
 | --- | --- |
-| empty (default) | Legacy | 
+| empty (default) |  Legacy | 
 | local | Local | 
 | hosts | Hosts | 
 | tcp | TCP | 
@@ -5782,6 +6036,34 @@ Example:
     ],
     "rules": [
       {
+        "action": "evaluate",
+        "server": "hosts"
+      },
+      {
+        "match_response": true,
+        "ip_accept_any": true,
+        "action": "respond"
+      }
+    ]
+  }
+}
+
+```
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        ...
+      },
+      {
+        "type": "hosts",
+        "tag": "hosts"
+      }
+    ],
+    "rules": [
+      {
         "ip_accept_any": true,
         "server": "hosts"
       }
@@ -5952,9 +6234,9 @@ See Dial Fields for details.
 
 # Legacy
 
-Deprecated in sing-box 1.12.0
+Removed in sing-box 1.14.0
 
-Legacy DNS servers is deprecated and will be removed in sing-box 1.14.0, check Migration.
+Legacy DNS servers are deprecated in sing-box 1.12.0 and removed in sing-box 1.14.0, check Migration.
 
 Changes in sing-box 1.9.0
 
@@ -6055,9 +6337,9 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
 
-`/32``/128`Can be overrides by rules.[].client_subnet.
+`/32``/128`Can be overridden by rules.[].client_subnet.
 
-`rules.[].client_subnet`Will overrides dns.client_subnet.
+`rules.[].client_subnet`Will override dns.client_subnet.
 
 `dns.client_subnet`
 ---
@@ -6257,6 +6539,36 @@ Specifically, default DNS resolvers are DNS servers that have SetLinkDefaultRout
     ],
     "rules": [
       {
+        "action": "evaluate",
+        "server": "resolved"
+      },
+      {
+        "match_response": true,
+        "ip_accept_any": true,
+        "action": "respond"
+      }
+    ]
+  }
+}
+
+```
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "resolved",
+        "tag": "resolved",
+        "service": "resolved"
+      }
+    ],
+    "rules": [
+      {
         "ip_accept_any": true,
         "server": "resolved"
       }
@@ -6326,6 +6638,36 @@ Indicates whether default DNS resolvers should be accepted for fallback queries 
 if not enabled, NXDOMAIN will be returned for non-Tailscale domain queries.
 
 `NXDOMAIN`### Examples
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "tailscale",
+        "tag": "ts",
+        "endpoint": "ts-ep"
+      }
+    ],
+    "rules": [
+      {
+        "action": "evaluate",
+        "server": "ts"
+      },
+      {
+        "match_response": true,
+        "ip_accept_any": true,
+        "action": "respond"
+      }
+    ]
+  }
+}
+
+```
 
 ```
 {
@@ -6976,7 +7318,7 @@ Store fakeip in the cache file
 
 Store rejected DNS response cache in the cache file
 
-The check results of Address filter DNS rule items
+The check results of Legacy Address Filter Fields
 will be cached until expiration.
 
 #### rdrc_timeout
@@ -7257,8 +7599,9 @@ User list to count traffic.
 | tun | Tun |  | 
 | redirect | Redirect |  | 
 | tproxy | TProxy |  | 
+| cloudflared | Cloudflared |  | 
 
-`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``tun``redirect``tproxy`#### tag
+`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``tun``redirect``tproxy``cloudflared`#### tag
 
 The tag of the inbound.
 
@@ -7330,6 +7673,102 @@ Default padding scheme:
 #### tls
 
 TLS configuration, see TLS.
+
+
+---
+
+## Cloudflared
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/inbound/cloudflared/>
+
+# Cloudflared
+
+Since sing-box 1.14.0
+
+cloudflared inbound runs an embedded Cloudflare Tunnel client and routes all
+incoming tunnel traffic (TCP, UDP, ICMP) through sing-box's routing engine.
+
+`cloudflared`### Structure
+
+```
+{
+  "type": "cloudflared",
+  "tag": "",
+
+  "token": "",
+  "ha_connections": 0,
+  "protocol": "",
+  "post_quantum": false,
+  "edge_ip_version": 0,
+  "datagram_version": "",
+  "grace_period": "",
+  "region": "",
+  "control_dialer": {
+    ... // Dial Fields
+  },
+  "tunnel_dialer": {
+    ... // Dial Fields
+  }
+}
+
+```
+
+### Fields
+
+#### token
+
+Required
+
+Base64-encoded tunnel token from the Cloudflare Zero Trust dashboard
+(Networks → Tunnels → Install connector).
+
+`Networks → Tunnels → Install connector`#### ha_connections
+
+Number of high-availability connections to the Cloudflare edge.
+
+Capped by the number of discovered edge addresses.
+
+#### protocol
+
+Transport protocol for edge connections.
+
+One of quic http2.
+
+`quic``http2`#### post_quantum
+
+Enable post-quantum key exchange on the control connection.
+
+#### edge_ip_version
+
+IP version used when connecting to the Cloudflare edge.
+
+One of 0 (automatic) 4 6.
+
+`0``4``6`#### datagram_version
+
+Datagram protocol version used for UDP proxying over QUIC.
+
+One of v2 v3. Only meaningful when protocol is quic.
+
+`v2``v3``protocol``quic`#### grace_period
+
+Graceful shutdown window for in-flight edge connections.
+
+#### region
+
+Cloudflare edge region selector.
+
+Conflict with endpoints embedded in token.
+
+`token`#### control_dialer
+
+Dial Fields used when the tunnel client dials the
+Cloudflare control plane.
+
+#### tunnel_dialer
+
+Dial Fields used when the tunnel client dials the
+Cloudflare edge data plane.
 
 
 ---
@@ -11120,7 +11559,7 @@ Since sing-box 1.12.0
 
 See Dial Fields for details.
 
-Can be overrides by outbound.domain_resolver.
+Can be overridden by outbound.domain_resolver.
 
 `outbound.domain_resolver`#### default_network_strategy
 
@@ -11130,7 +11569,7 @@ See Dial Fields for details.
 
 Takes no effect if outbound.bind_interface, outbound.inet4_bind_address or outbound.inet6_bind_address is set.
 
-`outbound.bind_interface``outbound.inet4_bind_address``outbound.inet6_bind_address`Can be overrides by outbound.network_strategy.
+`outbound.bind_interface``outbound.inet4_bind_address``outbound.inet6_bind_address`Can be overridden by outbound.network_strategy.
 
 `outbound.network_strategy`Conflicts with default_interface.
 
@@ -11261,6 +11700,7 @@ Changes in sing-box 1.14.0
 
 source_mac_address
  source_hostname
+ package_name_regex
 
 Changes in sing-box 1.13.0
 
@@ -11383,6 +11823,9 @@ rule_set
         ],
         "package_name": [
           "com.termux"
+        ],
+        "package_name_regex": [
+          "^com\\.termux.*"
         ],
         "user": [
           "sekai"
@@ -11598,6 +12041,12 @@ Match process path using regular expression.
 #### package_name
 
 Match android package name.
+
+#### package_name_regex
+
+Since sing-box 1.14.0
+
+Match android package name using regular expression.
 
 #### user
 
@@ -12087,7 +12536,7 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
 
-`/32``/128`Will overrides dns.client_subnet.
+`/32``/128`Will override dns.client_subnet.
 
 `dns.client_subnet`
 ---
@@ -12331,6 +12780,11 @@ like hosts, only match the exact same domain.
 
 # Headless Rule
 
+Changes in sing-box 1.14.0
+
+package_name_regex
+ query_type
+
 Changes in sing-box 1.13.0
 
 network_interface_address
@@ -12407,6 +12861,9 @@ Since sing-box 1.8.0
       "package_name": [
         "com.termux"
       ],
+      "package_name_regex": [
+        "^com\\.termux.*"
+      ],
       "network_type": [
         "wifi"
       ],
@@ -12451,7 +12908,21 @@ other fields
 
 `domain``domain_suffix``domain_keyword``domain_regex``ip_cidr``port``port_range``source_port``source_port_range``other fields`#### query_type
 
-DNS query type. Values can be integers or type name strings.
+Changes in sing-box 1.14.0
+
+When a DNS rule references this rule-set, this field now also applies
+when the DNS rule is matched from an internal domain resolution that
+does not target a specific DNS server. In earlier versions, only DNS
+queries received from a client evaluated this field. See
+Migration
+for the full list.
+
+When a DNS rule references a rule-set containing this field, the DNS
+rule is incompatible in the same DNS configuration with Legacy Address
+Filter Fields in DNS rules, the Legacy strategy DNS rule action
+option, and the Legacy rule_set_ip_cidr_accept_empty DNS rule item.
+
+`strategy``rule_set_ip_cidr_accept_empty`DNS query type. Values can be integers or type name strings.
 
 #### network
 
@@ -12522,6 +12993,12 @@ Match process path using regular expression.
 #### package_name
 
 Match android package name.
+
+#### package_name_regex
+
+Since sing-box 1.14.0
+
+Match android package name using regular expression.
 
 #### network_type
 
@@ -12609,7 +13086,11 @@ Included rules.
 
 # Source Format
 
-Changes in sing-box 1.13.0
+Changes in sing-box 1.14.0
+
+version 5
+
+`5`Changes in sing-box 1.13.0
 
 version 4
 
@@ -12649,8 +13130,9 @@ Version of rule-set.
 - 2: sing-box 1.10.0: Optimized memory usages of domain_suffix rules in binary rule-sets.
 - 3: sing-box 1.11.0: Added network_type, network_is_expensive and network_is_constrainted rule items.
 - 4: sing-box 1.13.0: Added network_interface_address and default_interface_address rule items.
+- 5: sing-box 1.14.0: Added package_name_regex rule item.
 
-`domain_suffix``network_type``network_is_expensive``network_is_constrainted``network_interface_address``default_interface_address`#### rules
+`domain_suffix``network_type``network_is_expensive``network_is_constrainted``network_interface_address``default_interface_address``package_name_regex`#### rules
 
 Required
 
@@ -15516,6 +15998,27 @@ check Migration.
 
 `tls.acme`Old fields will be removed in sing-box 1.16.0.
 
+#### Legacy strategy DNS rule action option
+
+`strategy`Legacy strategy DNS rule action option is deprecated.
+
+`strategy`Old fields will be removed in sing-box 1.16.0.
+
+#### Legacy rule_set_ip_cidr_accept_empty DNS rule item
+
+`rule_set_ip_cidr_accept_empty`Legacy rule_set_ip_cidr_accept_empty DNS rule item is deprecated,
+check Migration.
+
+`rule_set_ip_cidr_accept_empty`Old fields will be removed in sing-box 1.16.0.
+
+#### Legacy Address Filter Fields in DNS rules
+
+Legacy Address Filter Fields (ip_cidr, ip_is_private without match_response)
+in DNS rules are deprecated,
+check Migration.
+
+`ip_cidr``ip_is_private``match_response`Old behavior will be removed in sing-box 1.16.0.
+
 ## 1.12.0
 
 #### Legacy DNS server formats
@@ -15523,7 +16026,7 @@ check Migration.
 DNS servers are refactored,
 check Migration.
 
-Compatibility for old formats will be removed in sing-box 1.14.0.
+Old formats were removed in sing-box 1.14.0.
 
 #### outbound DNS rule item
 
@@ -15712,10 +16215,11 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | with_ccm |  | Build with Claude Code Multiplexer service support. | 
 | with_ocm |  | Build with OpenAI Codex Multiplexer service support. | 
 | with_naive_outbound |  | Build with NaiveProxy outbound support, see NaiveProxy outbound. | 
+| with_cloudflared |  | Build with Cloudflare Tunnel inbound support, see Cloudflared inbound. | 
 | badlinkname |  | Enable go:linkname access to internal standard library functions. Required because the Go standard library does not expose many low-level APIs needed by this project, and reimplementing them externally is impractical. Used for kTLS (kernel TLS offload) and raw TLS record manipulation. | 
 | tfogo_checklinkname0 |  | Companion to badlinkname. Go 1.23+ enforces go:linkname restrictions via the linker; this tag signals the build uses -checklinkname=0 to bypass that enforcement. | 
 
-`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
+`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``with_cloudflared``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
 
 ##  Linker Flags
 
@@ -17072,6 +17576,112 @@ Certificate Provider
 }
 
 ```
+
+### Migrate address filter fields to response matching
+
+Legacy Address Filter Fields (ip_cidr, ip_is_private without match_response) in DNS rules are deprecated,
+along with the Legacy rule_set_ip_cidr_accept_empty DNS rule item.
+
+`ip_cidr``ip_is_private``match_response``rule_set_ip_cidr_accept_empty`In sing-box 1.14.0, use the evaluate action
+to fetch a DNS response, then match against it explicitly with match_response.
+
+`evaluate``match_response`References
+
+DNS Rule /
+DNS Rule Action
+
+```
+{
+  "dns": {
+    "rules": [
+      {
+        "rule_set": "geoip-cn",
+        "action": "route",
+        "server": "local"
+      },
+      {
+        "action": "route",
+        "server": "remote"
+      }
+    ]
+  }
+}
+
+```
+
+```
+{
+  "dns": {
+    "rules": [
+      {
+        "action": "evaluate",
+        "server": "remote"
+      },
+      {
+        "match_response": true,
+        "rule_set": "geoip-cn",
+        "action": "route",
+        "server": "local"
+      },
+      {
+        "action": "route",
+        "server": "remote"
+      }
+    ]
+  }
+}
+
+```
+
+### ip_version and query_type behavior changes in DNS rules
+
+In sing-box 1.14.0, the behavior of
+ip_version and
+query_type in DNS rules, together with
+query_type in referenced
+rule-sets, changes in two ways.
+
+`ip_version``query_type``query_type`First, these fields now take effect on every DNS rule evaluation. In earlier
+versions they were evaluated only for DNS queries received from a client
+(for example, from a DNS inbound or intercepted by tun), and were silently
+ignored when a DNS rule was matched from an internal domain resolution that
+did not target a specific DNS server. Such internal resolutions include:
+
+`tun`- The resolve route rule
+  action without a server set.
+- ICMP traffic routed to a domain destination through a direct outbound.
+- A WireGuard or
+  Tailscale endpoint used as an
+  outbound, when resolving its own destination address.
+- A SOCKS4 outbound, which must resolve
+  the destination locally because the protocol has no in-protocol domain
+  support.
+- The DERP bootstrap-dns endpoint and the
+  resolved service (when resolving a
+  hostname or an SRV target).
+
+`resolve``server``direct``bootstrap-dns``resolved`Resolutions that target a specific DNS server — via
+domain_resolver on a dial
+field, default_domain_resolver
+in route options, or an explicit server on a DNS rule action or the
+resolve route rule action — do not go through DNS rule matching and are
+unaffected.
+
+`domain_resolver``default_domain_resolver``server``resolve`Second, setting ip_version or query_type in a DNS rule, or referencing a
+rule-set containing query_type, is no longer compatible in the same DNS
+configuration with Legacy Address Filter Fields in DNS rules, the Legacy
+strategy DNS rule action option, or the Legacy rule_set_ip_cidr_accept_empty
+DNS rule item. Such a configuration will be rejected at startup. To combine
+these fields with address-based filtering, migrate to response matching via
+the evaluate action and
+match_response, see
+Migrate address filter fields to response matching.
+
+`ip_version``query_type``query_type``strategy``rule_set_ip_cidr_accept_empty``evaluate``match_response`References
+
+DNS Rule /
+Headless Rule /
+Route Rule Action
 
 ## 1.12.0
 
