@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-11 02:08:25 UTC
+> Generated on: 2026-04-13 02:35:33 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -198,7 +198,30 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.10
+#### 1.14.0-alpha.11
+
+- Add optimistic DNS cache 1
+- Update NaiveProxy to 147.0.7727.49
+- Fixes and improvements
+
+1:
+
+Optimistic DNS cache returns an expired cached response immediately while
+refreshing it in the background, reducing tail latency for repeated
+queries. Enabled via optimistic
+in DNS options, and can be persisted across restarts with the new
+store_dns cache
+file option. A per-query
+disable_optimistic_cache
+field is also available on DNS rule actions and the resolve route rule
+action.
+
+`optimistic``store_dns``disable_optimistic_cache``resolve`This deprecates the independent_cache DNS option (the DNS cache now
+always keys by transport) and the store_rdrc cache file option
+(replaced by store_dns); both will be removed in sing-box 1.16.0.
+See Migration.
+
+`independent_cache``store_rdrc``store_dns`#### 1.14.0-alpha.10
 
 - Add evaluate DNS rule action and Response Match Fields 1
 - ip_version and query_type now also take effect on internal DNS lookups 2
@@ -4789,6 +4812,11 @@ The directory path to search for certificates to trust,in PEM format.
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/>
 
+Changes in sing-box 1.14.0
+
+independent_cache
+ optimistic
+
 Changes in sing-box 1.12.0
 
 servers
@@ -4812,6 +4840,7 @@ cache_capacity
     "disable_expire": false,
     "independent_cache": false,
     "cache_capacity": 0,
+    "optimistic": false, // or {}
     "reverse_mapping": false,
     "client_subnet": "",
     "fakeip": {}
@@ -4844,13 +4873,21 @@ One of prefer_ipv4 prefer_ipv6 ipv4_only ipv6_only.
 
 Disable dns cache.
 
-#### disable_expire
+Conflict with optimistic.
+
+`optimistic`#### disable_expire
 
 Disable dns cache expire.
 
-#### independent_cache
+Conflict with optimistic.
 
-Make each DNS server's cache independent for special purposes. If enabled, will slightly degrade performance.
+`optimistic`#### independent_cache
+
+Deprecated in sing-box 1.14.0
+
+independent_cache is deprecated and will be removed in sing-box 1.14.0, check Migration.
+
+`independent_cache`Make each DNS server's cache independent for special purposes. If enabled, will slightly degrade performance.
 
 #### cache_capacity
 
@@ -4860,7 +4897,36 @@ LRU cache capacity.
 
 Value less than 1024 will be ignored.
 
-#### reverse_mapping
+#### optimistic
+
+Since sing-box 1.14.0
+
+Enable optimistic DNS caching. When a cached DNS entry has expired but is still within the timeout window,
+the stale response is returned immediately while a background refresh is triggered.
+
+Conflict with disable_cache and disable_expire.
+
+`disable_cache``disable_expire`Accepts a boolean or an object. When set to true, the default timeout of 3d is used.
+
+`true``3d````
+{
+  "enabled": true,
+  "timeout": "3d"
+}
+
+```
+
+##### enabled
+
+Enable optimistic DNS caching.
+
+##### timeout
+
+The maximum time an expired cache entry can be served optimistically.
+
+3d is used by default.
+
+`3d`#### reverse_mapping
 
 Stores a reverse mapping of IP addresses after responding to a DNS query in order to provide domain names when routing.
 
@@ -5596,6 +5662,7 @@ Changes in sing-box 1.14.0
 strategy
  evaluate
  respond
+ disable_optimistic_cache
 
 Changes in sing-box 1.12.0
 
@@ -5612,6 +5679,7 @@ Since sing-box 1.11.0
   "server": "",
   "strategy": "",
   "disable_cache": false,
+  "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "client_subnet": null
 }
@@ -5642,6 +5710,12 @@ One of prefer_ipv4 prefer_ipv6 ipv4_only ipv6_only.
 
 Disable cache and save cache in this query.
 
+#### disable_optimistic_cache
+
+Since sing-box 1.14.0
+
+Disable optimistic DNS caching in this query.
+
 #### rewrite_ttl
 
 Rewrite TTL in DNS responses.
@@ -5663,6 +5737,7 @@ Since sing-box 1.14.0
   "action": "evaluate",
   "server": "",
   "disable_cache": false,
+  "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "client_subnet": null
 }
@@ -5687,6 +5762,12 @@ Tag of target server.
 #### disable_cache
 
 Disable cache and save cache in this query.
+
+#### disable_optimistic_cache
+
+Since sing-box 1.14.0
+
+Disable optimistic DNS caching in this query.
 
 #### rewrite_ttl
 
@@ -5723,6 +5804,7 @@ Only allowed after a preceding top-level evaluate rule. If the action is reached
 {
   "action": "route-options",
   "disable_cache": false,
+  "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "client_subnet": null
 }
@@ -7273,6 +7355,11 @@ cache_file
 
 Since sing-box 1.8.0
 
+Changes in sing-box 1.14.0
+
+store_rdrc
+ store_dns
+
 Changes in sing-box 1.9.0
 
 store_rdrc
@@ -7287,7 +7374,8 @@ store_rdrc
   "cache_id": "",
   "store_fakeip": false,
   "store_rdrc": false,
-  "rdrc_timeout": ""
+  "rdrc_timeout": "",
+  "store_dns": false
 }
 
 ```
@@ -7316,7 +7404,11 @@ Store fakeip in the cache file
 
 #### store_rdrc
 
-Store rejected DNS response cache in the cache file
+Deprecated in sing-box 1.14.0
+
+store_rdrc is deprecated and will be removed in sing-box 1.16.0, check Migration.
+
+`store_rdrc`Store rejected DNS response cache in the cache file
 
 The check results of Legacy Address Filter Fields
 will be cached until expiration.
@@ -7327,7 +7419,13 @@ Timeout of rejected DNS response cache.
 
 7d is used by default.
 
-`7d`
+`7d`#### store_dns
+
+Since sing-box 1.14.0
+
+Store DNS cache in the cache file.
+
+
 ---
 
 ## Clash API
@@ -12224,6 +12322,10 @@ Changes in sing-box 1.13.0
 bypass
  reject
 
+Changes in sing-box 1.14.0
+
+resolve.disable_optimistic_cache
+
 Changes in sing-box 1.12.0
 
 tls_fragment
@@ -12498,6 +12600,7 @@ Timeout for sniffing.
   "server": "",
   "strategy": "",
   "disable_cache": false,
+  "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "client_subnet": null
 }
@@ -12521,6 +12624,12 @@ DNS resolution strategy, available values are: prefer_ipv4, prefer_ipv6, ipv4_on
 Since sing-box 1.12.0
 
 Disable cache and save cache in this query.
+
+#### disable_optimistic_cache
+
+Since sing-box 1.14.0
+
+Disable optimistic DNS caching in this query.
 
 #### rewrite_ttl
 
@@ -16011,6 +16120,21 @@ check Migration.
 
 `rule_set_ip_cidr_accept_empty`Old fields will be removed in sing-box 1.16.0.
 
+#### independent_cache DNS option
+
+`independent_cache`independent_cache DNS option is deprecated.
+The DNS cache now always keys by transport, making this option unnecessary,
+check Migration.
+
+`independent_cache`Old fields will be removed in sing-box 1.16.0.
+
+#### store_rdrc cache file option
+
+`store_rdrc`store_rdrc cache file option is deprecated,
+check Migration.
+
+`store_rdrc`Old fields will be removed in sing-box 1.16.0.
+
 #### Legacy Address Filter Fields in DNS rules
 
 Legacy Address Filter Fields (ip_cidr, ip_is_private without match_response)
@@ -17628,6 +17752,64 @@ DNS Rule Action
         "server": "remote"
       }
     ]
+  }
+}
+
+```
+
+### Migrate independent DNS cache
+
+The DNS cache now always keys by transport name, making independent_cache unnecessary.
+Simply remove the field.
+
+`independent_cache`References
+
+DNS
+
+```
+{
+  "dns": {
+    "independent_cache": true
+  }
+}
+
+```
+
+```
+{
+  "dns": {}
+}
+
+```
+
+### Migrate store_rdrc
+
+store_rdrc is deprecated and can be replaced by store_dns,
+which persists the full DNS cache to the cache file.
+
+`store_rdrc``store_dns`References
+
+Cache File
+
+```
+{
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "store_rdrc": true
+    }
+  }
+}
+
+```
+
+```
+{
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "store_dns": true
+    }
   }
 }
 
