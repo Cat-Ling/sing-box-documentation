@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-13 02:35:33 UTC
+> Generated on: 2026-04-15 02:28:05 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -197,6 +197,17 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.12
+
+- Fix fake-ip DNS server should return SUCCESS when address type is not configured
+- Fixes and improvements
+
+#### 1.13.8
+
+- Update naiveproxy to v147.0.7727.49-1
+- Fix fake-ip DNS server should return SUCCESS when address type is not configured
+- Fixes and improvements
 
 #### 1.14.0-alpha.11
 
