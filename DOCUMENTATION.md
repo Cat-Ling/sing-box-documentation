@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-17 02:30:48 UTC
+> Generated on: 2026-04-19 02:35:24 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -86,10 +86,13 @@
 - [Tailscale](#tailscale)
 - [Dial Fields](#dial-fields)
 - [DNS01 Challenge Fields](#dns01-challenge-fields)
+- [HTTP Client](#http-client)
+- [HTTP2 Fields](#http2-fields)
 - [Listen Fields](#listen-fields)
 - [Multiplex](#multiplex)
 - [Neighbor Resolution](#neighbor-resolution)
 - [Pre-match](#pre-match)
+- [QUIC Fields](#quic-fields)
 - [TCP Brutal](#tcp-brutal)
 - [TLS](#tls)
 - [UDP over TCP](#udp-over-tcp)
@@ -198,7 +201,86 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.12
+#### 1.14.0-alpha.14
+
+- Fixes and improvements
+
+#### 1.14.0-alpha.13
+
+- Unify HTTP client 1
+- Add Apple HTTP and TLS engines 2
+- Unify HTTP/2 and QUIC parameters 3
+- Add TLS spoof 4
+- Fixes and improvements
+
+1:
+
+The new top-level http_clients
+option defines reusable HTTP clients (engine, version, dialer, TLS,
+HTTP/2 and QUIC parameters). Components that make outbound HTTP requests
+— remote rule-sets, ACME and Cloudflare Origin CA certificate providers,
+DERP verify_client_url, and the Tailscale control_http_client — now
+accept an inline HTTP client object or the tag of an http_clients
+entry, replacing the dial and TLS fields previously inlined in each
+component. When the field is omitted, ACME, Cloudflare Origin CA, DERP
+and Tailscale dial direct (their existing default).
+
+`http_clients``verify_client_url``control_http_client``http_clients`Remote rule-sets are the only HTTP-using component whose default for an
+omitted http_client has historically resolved to the default outbound,
+not to direct, and a typical configuration contains many of them. To
+avoid repeating the same http_client block in every rule-set,
+route.default_http_client
+selects a default rule-set client by tag and is the only field that
+consults it. If default_http_client is empty and http_clients is
+non-empty, the first entry is used automatically. The legacy fallback
+(use the default outbound when http_clients is empty altogether) is
+preserved with a deprecation warning and will be removed in sing-box
+1.16.0, together with the legacy download_detour remote rule-set
+option and the legacy dialer fields on Tailscale endpoints.
+
+`http_client``http_client``route.default_http_client``default_http_client``http_clients``http_clients``download_detour`2:
+
+A new apple engine is available on Apple platforms in two independent
+places:
+
+`apple`- HTTP client engine —
+  routes HTTP requests through NSURLSession.
+- Outbound TLS engine — routes
+  the TLS handshake through Network.framework for direct TCP TLS
+  client connections.
+
+`engine``NSURLSession``engine``Network.framework`The default remains go. Both engines come with additional CGO and
+framework memory overhead and platform restrictions documented on each
+field.
+
+`go`3:
+
+HTTP/2 and
+QUIC parameters
+(idle_timeout, keep_alive_period, stream_receive_window,
+connection_receive_window, max_concurrent_streams,
+initial_packet_size, disable_path_mtu_discovery) are now shared
+across QUIC-based outbounds
+(Hysteria,
+Hysteria2,
+TUIC) and HTTP clients running HTTP/2
+or HTTP/3.
+
+`idle_timeout``keep_alive_period``stream_receive_window``connection_receive_window``max_concurrent_streams``initial_packet_size``disable_path_mtu_discovery`This deprecates the Hysteria v1 tuning fields recv_window_conn,
+recv_window, recv_window_client, max_conn_client and
+disable_mtu_discovery; they will be removed in sing-box 1.16.0.
+
+`recv_window_conn``recv_window``recv_window_client``max_conn_client``disable_mtu_discovery`4:
+
+Added outbound TLS spoof and
+spoof_method fields. When
+enabled, a forged ClientHello carrying a whitelisted SNI is sent before
+the real handshake to fool SNI-filtering middleboxes. Requires
+CAP_NET_RAW + CAP_NET_ADMIN or root on Linux and macOS, and
+Administrator privileges on Windows (ARM64 is not supported). IP-literal
+server names are rejected.
+
+`spoof``spoof_method``CAP_NET_RAW``CAP_NET_ADMIN`#### 1.14.0-alpha.12
 
 - Fix fake-ip DNS server should return SUCCESS when address type is not configured
 - Fixes and improvements
@@ -4711,6 +4793,7 @@ sing-box uses JSON for configuration files.
   "ntp": {},
   "certificate": {},
   "certificate_providers": [],
+  "http_clients": [],
   "endpoints": [],
   "inbounds": [],
   "outbounds": [],
@@ -4730,6 +4813,7 @@ sing-box uses JSON for configuration files.
 | ntp | NTP | 
 | certificate | Certificate | 
 | certificate_providers | Certificate Provider | 
+| http_clients | HTTP Client | 
 | endpoints | Endpoint | 
 | inbounds | Inbound | 
 | outbounds | Outbound | 
@@ -4737,7 +4821,7 @@ sing-box uses JSON for configuration files.
 | services | Service | 
 | experimental | Experimental | 
 
-`log``dns``ntp``certificate``certificate_providers``endpoints``inbounds``outbounds``route``services``experimental`### Check
+`log``dns``ntp``certificate``certificate_providers``http_clients``endpoints``inbounds``outbounds``route``services``experimental`### Check
 
 ```
 sing-box check
@@ -7026,6 +7110,11 @@ The tag of the endpoint.
 
 # Tailscale
 
+Changes in sing-box 1.14.0
+
+control_http_client
+ Dial Fields
+
 Changes in sing-box 1.13.0
 
 relay_server_port
@@ -7046,6 +7135,7 @@ Since sing-box 1.12.0
   "state_directory": "",
   "auth_key": "",
   "control_url": "",
+  "control_http_client": {}, // or ""
   "ephemeral": false,
   "hostname": "",
   "accept_routes": false,
@@ -7173,13 +7263,21 @@ UDP NAT expiration time.
 
 5m will be used by default.
 
-`5m`### Dial Fields
+`5m`#### control_http_client
 
-Note
+Since sing-box 1.14.0
 
-Dial Fields in Tailscale endpoints only control how it connects to the control plane and have nothing to do with actual connections.
+HTTP Client for connecting to the Tailscale control plane.
 
-See Dial Fields for details.
+See HTTP Client Fields for details.
+
+### Dial Fields
+
+Deprecated in sing-box 1.14.0
+
+Dial Fields in Tailscale endpoints are deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0, use control_http_client instead.
+
+`control_http_client`See Dial Fields for details.
 
 
 ---
@@ -8012,11 +8110,16 @@ Automatically set system proxy configuration when start and clean up when stop.
     }
   ],
 
+  "tls": {},
+
+  ... // QUIC Fields
+
+  // Deprecated
+
   "recv_window_conn": 0,
   "recv_window_client": 0,
   "max_conn_client": 0,
-  "disable_mtu_discovery": false,
-  "tls": {}
+  "disable_mtu_discovery": false
 }
 
 ```
@@ -8071,37 +8174,43 @@ Authentication password, in base64.
 
 Authentication password.
 
-#### recv_window_conn
-
-The QUIC stream-level flow control window for receiving data.
-
-15728640 (15 MB/s) will be used if empty.
-
-`15728640 (15 MB/s)`#### recv_window_client
-
-The QUIC connection-level flow control window for receiving data.
-
-67108864 (64 MB/s) will be used if empty.
-
-`67108864 (64 MB/s)`#### max_conn_client
-
-The maximum number of QUIC concurrent bidirectional streams that a peer is allowed to open.
-
-1024 will be used if empty.
-
-`1024`#### disable_mtu_discovery
-
-Disables Path MTU Discovery (RFC 8899). Packets will then be at most 1252 (IPv4) / 1232 (IPv6) bytes in size.
-
-Force enabled on for systems other than Linux and Windows (according to upstream).
-
 #### tls
 
 Required
 
 TLS configuration, see TLS.
 
+### QUIC Fields
 
+See QUIC Fields for details.
+
+### Deprecated Fields
+
+#### recv_window_conn
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields stream_receive_window instead.
+
+`stream_receive_window`#### recv_window_client
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields connection_receive_window instead.
+
+`connection_receive_window`#### max_conn_client
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields max_concurrent_streams instead.
+
+`max_concurrent_streams`#### disable_mtu_discovery
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields disable_path_mtu_discovery instead.
+
+`disable_path_mtu_discovery`
 ---
 
 ## Hysteria2
@@ -8142,6 +8251,9 @@ masquerade
   ],
   "ignore_client_bandwidth": false,
   "tls": {},
+
+  ... // QUIC Fields
+
   "masquerade": "", // or {}
   "bbr_profile": "",
   "brutal_debug": false
@@ -8203,6 +8315,10 @@ When up_mbps and down_mbps are set:
 Required
 
 TLS configuration, see TLS.
+
+### QUIC Fields
+
+See QUIC Fields for details.
 
 #### masquerade
 
@@ -8827,7 +8943,9 @@ V2Ray Transport configuration, see V2Ray Transport.
   "auth_timeout": "3s",
   "zero_rtt_handshake": false,
   "heartbeat": "10s",
-  "tls": {}
+  "tls": {},
+
+  ... // QUIC Fields
 }
 
 ```
@@ -8885,6 +9003,10 @@ Interval for sending heartbeat packets for keeping the connection alive
 Required
 
 TLS configuration, see TLS.
+
+### QUIC Fields
+
+See QUIC Fields for details.
 
 
 ---
@@ -10064,13 +10186,18 @@ server_ports
   "obfs": "fuck me till the daylight",
   "auth": "",
   "auth_str": "password",
-  "recv_window_conn": 0,
-  "recv_window": 0,
-  "disable_mtu_discovery": false,
-  "network": "tcp",
+  "network": "",
   "tls": {},
 
+  ... // QUIC Fields
+
   ... // Dial Fields
+
+  // Deprecated
+
+  "recv_window_conn": 0,
+  "recv_window": 0,
+  "disable_mtu_discovery": false
 }
 
 ```
@@ -10145,24 +10272,6 @@ Authentication password, in base64.
 
 Authentication password.
 
-#### recv_window_conn
-
-The QUIC stream-level flow control window for receiving data.
-
-15728640 (15 MB/s) will be used if empty.
-
-`15728640 (15 MB/s)`#### recv_window
-
-The QUIC connection-level flow control window for receiving data.
-
-67108864 (64 MB/s) will be used if empty.
-
-`67108864 (64 MB/s)`#### disable_mtu_discovery
-
-Disables Path MTU Discovery (RFC 8899). Packets will then be at most 1252 (IPv4) / 1232 (IPv6) bytes in size.
-
-Force enabled on for systems other than Linux and Windows (according to upstream).
-
 #### network
 
 Enabled network
@@ -10177,11 +10286,35 @@ Required
 
 TLS configuration, see TLS.
 
+### QUIC Fields
+
+See QUIC Fields for details.
+
 ### Dial Fields
 
 See Dial Fields for details.
 
+### Deprecated Fields
 
+#### recv_window_conn
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields stream_receive_window instead.
+
+`stream_receive_window`#### recv_window
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields connection_receive_window instead.
+
+`connection_receive_window`#### disable_mtu_discovery
+
+Deprecated in sing-box 1.14.0
+
+Use QUIC fields disable_path_mtu_discovery instead.
+
+`disable_path_mtu_discovery`
 ---
 
 ## Hysteria2
@@ -10223,6 +10356,9 @@ server_ports
   "password": "goofy_ahh_password",
   "network": "tcp",
   "tls": {},
+
+  ... // QUIC Fields
+
   "bbr_profile": "",
   "brutal_debug": false,
 
@@ -10314,6 +10450,10 @@ One of tcp udp.
 Required
 
 TLS configuration, see TLS.
+
+### QUIC Fields
+
+See QUIC Fields for details.
 
 #### bbr_profile
 
@@ -11001,6 +11141,8 @@ See Dial Fields for details.
   "network": "tcp",
   "tls": {},
 
+  ... // QUIC Fields
+
   ... // Dial Fields
 }
 
@@ -11075,6 +11217,10 @@ One of tcp udp.
 Required
 
 TLS configuration, see TLS.
+
+### QUIC Fields
+
+See QUIC Fields for details.
 
 ### Dial Fields
 
@@ -11536,7 +11682,8 @@ See Dial Fields for details.
 
 Changes in sing-box 1.14.0
 
-find_neighbor
+default_http_client
+ find_neighbor
  dhcp_lease_files
 
 Changes in sing-box 1.12.0
@@ -11573,6 +11720,7 @@ rule_set
     "find_process": false,
     "find_neighbor": false,
     "dhcp_lease_files": [],
+    "default_http_client": "",
     "default_domain_resolver": "", // or {}
     "default_network_strategy": "",
     "default_network_type": [],
@@ -11662,7 +11810,15 @@ Custom DHCP lease file paths for hostname and MAC address resolution.
 
 Automatically detected from common DHCP servers (dnsmasq, odhcpd, ISC dhcpd, Kea) if empty.
 
-#### default_domain_resolver
+#### default_http_client
+
+Since sing-box 1.14.0
+
+Tag of the default HTTP Client used by remote rule-sets.
+
+If empty and http_clients is defined, the first HTTP client is used.
+
+`http_clients`#### default_domain_resolver
 
 Since sing-box 1.12.0
 
@@ -12707,6 +12863,11 @@ If enabled in the inbound, the protocol and domain name (if present) of by the c
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/rule-set/>
 
+Changes in sing-box 1.14.0
+
+http_client
+ download_detour
+
 Changes in sing-box 1.10.0
 
 type: inline
@@ -12746,8 +12907,12 @@ Remote rule-set will be cached if experimental.cache_file.enabled.
   "tag": "",
   "format": "source", // or binary
   "url": "",
-  "download_detour": "", // optional
-  "update_interval": "" // optional
+  "http_client": "", // or {}
+  "update_interval": "",
+
+  // Deprecated
+
+  "download_detour": ""
 }
 
 ```
@@ -12804,11 +12969,15 @@ Required
 
 Download URL of rule-set.
 
-#### download_detour
+#### http_client
 
-Tag of the outbound to download rule-set.
+Since sing-box 1.14.0
 
-Default outbound will be used if empty.
+HTTP Client for downloading rule-set.
+
+See HTTP Client Fields for details.
+
+Default transport will be used if empty.
 
 #### update_interval
 
@@ -12816,7 +12985,15 @@ Update interval of rule-set.
 
 1d will be used if empty.
 
-`1d`
+`1d`#### download_detour
+
+Deprecated in sing-box 1.14.0
+
+download_detour is deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0, use http_client instead.
+
+`download_detour``http_client`Tag of the outbound to download rule-set.
+
+
 ---
 
 ## AdGuard DNS Filer
@@ -13500,9 +13677,9 @@ Object format:
 
 ```
 {
-  "url": "https://my-headscale.com/verify",
+  "url": "",
 
-  ... // Dial Fields
+  ... // HTTP Client Fields
 }
 
 ```
@@ -13939,7 +14116,7 @@ Changes in sing-box 1.14.0
 
 account_key
  key_type
- detour
+ http_client
 
 # ACME
 
@@ -13968,7 +14145,7 @@ with_acme build tag required.
   },
   "dns01_challenge": {},
   "key_type": "",
-  "detour": ""
+  "http_client": "" // or {}
 }
 
 ```
@@ -14073,13 +14250,13 @@ The private key type to generate for new certificates.
 | rsa2048 | RSA | 
 | rsa4096 | RSA | 
 
-`ed25519``p256``p384``rsa2048``rsa4096`#### detour
+`ed25519``p256``p384``rsa2048``rsa4096`#### http_client
 
 Since sing-box 1.14.0
 
-The tag of the upstream outbound.
+HTTP Client for all provider HTTP requests.
 
-All provider HTTP requests will use this outbound.
+See HTTP Client Fields for details.
 
 
 ---
@@ -14105,7 +14282,7 @@ Since sing-box 1.14.0
   "origin_ca_key": "",
   "request_type": "",
   "requested_validity": 0,
-  "detour": ""
+  "http_client": "" // or {}
 }
 
 ```
@@ -14162,11 +14339,11 @@ Available values: 7, 30, 90, 365, 730, 1095, 5475.
 
 `7``30``90``365``730``1095``5475`5475 days (15 years) is used if empty.
 
-`5475`#### detour
+`5475`#### http_client
 
-The tag of the upstream outbound.
+HTTP Client for all provider HTTP requests.
 
-All provider HTTP requests will use this outbound.
+See HTTP Client Fields for details.
 
 
 ---
@@ -14593,6 +14770,175 @@ See ACME-DNS for details.
 
 ---
 
+## HTTP Client
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/http-client/>
+
+# HTTP Client
+
+Since sing-box 1.14.0
+
+### Structure
+
+A string or an object.
+
+When string, the tag of a shared HTTP Client defined in top-level http_clients.
+
+`http_clients`When object:
+
+```
+{
+  "engine": "",
+  "version": 0,
+  "disable_version_fallback": false,
+  "headers": {},
+
+  ... // HTTP2 Fields
+
+  "tls": {},
+
+  ... // Dial Fields
+}
+
+```
+
+### Fields
+
+#### engine
+
+HTTP engine to use.
+
+Values:
+
+- go (default)
+- apple
+
+`go``apple`apple uses NSURLSession, only available on Apple platforms.
+
+`apple`Experimental only: due to the high memory overhead of both CGO and Network.framework,
+do not use in hot paths on iOS and tvOS.
+
+Supported fields:
+
+- headers
+- tls.server_name (must match request host)
+- tls.insecure
+- tls.min_version / tls.max_version
+- tls.certificate / tls.certificate_path
+- tls.certificate_public_key_sha256
+- Dial Fields
+
+`headers``tls.server_name``tls.insecure``tls.min_version``tls.max_version``tls.certificate``tls.certificate_path``tls.certificate_public_key_sha256`Unsupported fields:
+
+- version
+- disable_version_fallback
+- HTTP2 Fields
+- QUIC Fields
+- tls.engine
+- tls.alpn
+- tls.disable_sni
+- tls.cipher_suites
+- tls.curve_preferences
+- tls.client_certificate / tls.client_certificate_path / tls.client_key / tls.client_key_path
+- tls.fragment / tls.record_fragment
+- tls.kernel_tx / tls.kernel_rx
+- tls.ech
+- tls.utls
+- tls.reality
+
+`version``disable_version_fallback``tls.engine``tls.alpn``tls.disable_sni``tls.cipher_suites``tls.curve_preferences``tls.client_certificate``tls.client_certificate_path``tls.client_key``tls.client_key_path``tls.fragment``tls.record_fragment``tls.kernel_tx``tls.kernel_rx``tls.ech``tls.utls``tls.reality`#### version
+
+HTTP version.
+
+Available values: 1, 2, 3.
+
+`1``2``3`2 is used by default.
+
+`2`When 3, HTTP2 Fields are replaced by QUIC Fields.
+
+`3`#### disable_version_fallback
+
+Disable automatic fallback to lower HTTP version.
+
+#### headers
+
+Custom HTTP headers.
+
+Host header is used as request host.
+
+`Host`### HTTP2 Fields
+
+When version is 2 (default).
+
+`version``2`See HTTP2 Fields for details.
+
+### QUIC Fields
+
+When version is 3.
+
+`version``3`See QUIC Fields for details.
+
+### TLS Fields
+
+See TLS for details.
+
+### Dial Fields
+
+See Dial Fields for details.
+
+
+---
+
+## HTTP2 Fields
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/http2/>
+
+# HTTP2 Fields
+
+Since sing-box 1.14.0
+
+### Structure
+
+```
+{
+  "idle_timeout": "",
+  "keep_alive_period": "",
+  "stream_receive_window": "",
+  "connection_receive_window": "",
+  "max_concurrent_streams": 0
+}
+
+```
+
+### Fields
+
+#### idle_timeout
+
+Idle connection timeout, in golang's Duration format.
+
+#### keep_alive_period
+
+Keep alive period, in golang's Duration format.
+
+#### stream_receive_window
+
+HTTP2 stream-level flow-control receive window size.
+
+Accepts memory size format, e.g. "64 MB".
+
+`"64 MB"`#### connection_receive_window
+
+HTTP2 connection-level flow-control receive window size.
+
+Accepts memory size format, e.g. "64 MB".
+
+`"64 MB"`#### max_concurrent_streams
+
+Maximum concurrent streams per connection.
+
+
+---
+
 ## Listen Fields
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/shared/listen/>
@@ -14996,6 +15342,43 @@ and will be skipped in other contexts.
 
 ---
 
+## QUIC Fields
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/quic/>
+
+# QUIC Fields
+
+Since sing-box 1.14.0
+
+### Structure
+
+```
+{
+  "initial_packet_size": 0,
+  "disable_path_mtu_discovery": false,
+
+  ... // HTTP2 Fields
+}
+
+```
+
+### Fields
+
+#### initial_packet_size
+
+Initial QUIC packet size.
+
+#### disable_path_mtu_discovery
+
+Disable QUIC path MTU discovery.
+
+### HTTP2 Fields
+
+See HTTP2 Fields for details.
+
+
+---
+
 ## TCP Brutal
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/shared/tcp-brutal/>
@@ -15044,6 +15427,9 @@ Upload and download bandwidth, in Mbps.
 Changes in sing-box 1.14.0
 
 certificate_provider
+ handshake_timeout
+ spoof
+ spoof_method
  acme
 
 Changes in sing-box 1.13.0
@@ -15093,6 +15479,7 @@ utls
   "key_path": "",
   "kernel_tx": false,
   "kernel_rx": false,
+  "handshake_timeout": "",
   "certificate_provider": "",
 
   // Deprecated
@@ -15146,6 +15533,7 @@ utls
 ```
 {
   "enabled": true,
+  "engine": "",
   "disable_sni": false,
   "server_name": "",
   "insecure": false,
@@ -15164,6 +15552,11 @@ utls
   "fragment": false,
   "fragment_fallback_delay": "",
   "record_fragment": false,
+  "spoof": "",
+  "spoof_method": "",
+  "kernel_tx": false,
+  "kernel_rx": false,
+  "handshake_timeout": "",
   "ech": {
     "enabled": false,
     "config": [],
@@ -15222,7 +15615,48 @@ TLS version values:
 
 Enable TLS.
 
-#### disable_sni
+#### engine
+
+Client only
+
+TLS engine to use.
+
+Values:
+
+- go (default)
+- apple
+
+`go``apple`apple uses Network.framework, only available on Apple platforms and only supports direct TCP TLS client connections.
+
+`apple`Experimental only: due to the high memory overhead of both CGO and Network.framework,
+do not use in hot paths on iOS and tvOS.
+If you want to circumvent TLS fingerprint-based proxy censorship,
+use NaiveProxy instead.
+
+Supported fields:
+
+- server_name
+- insecure
+- alpn
+- min_version
+- max_version
+- certificate / certificate_path
+- certificate_public_key_sha256
+- handshake_timeout
+
+`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
+
+- disable_sni
+- cipher_suites
+- curve_preferences
+- client_certificate / client_certificate_path / client_key / client_key_path
+- fragment / record_fragment
+- kernel_tx / kernel_rx
+- ech
+- utls
+- reality
+
+`disable_sni``cipher_suites``curve_preferences``client_certificate``client_certificate_path``client_key``client_key_path``fragment``record_fragment``kernel_tx``kernel_rx``ech``utls``reality`#### disable_sni
 
 Client only
 
@@ -15439,7 +15873,15 @@ kTLS RX will definitely degrade performance even if splice(2) is in use, so enab
 
 `splice(2)`Enable kernel TLS receive support.
 
-#### certificate_provider
+#### handshake_timeout
+
+Since sing-box 1.14.0
+
+TLS handshake timeout, in golang's Duration format.
+
+15s is used by default.
+
+`15s`#### certificate_provider
 
 Since sing-box 1.14.0
 
@@ -15605,7 +16047,42 @@ Client only
 
 Fragment TLS handshake into multiple TLS records to bypass firewalls.
 
-### ACME Fields
+#### spoof
+
+Since sing-box 1.14.0
+
+Client only, Linux/macOS/Windows only, requires elevated privileges
+
+Inject a forged TLS ClientHello carrying a whitelisted SNI before the real one,
+to fool SNI-filtering middleboxes that permit specific hostnames.
+
+The forged segment is a copy of the real ClientHello with only the SNI value
+replaced by the value of this field, so TLS fingerprinting cannot distinguish
+it from the real one. The receiving server drops the forged segment
+(see spoof_method) while the middlebox treats it as a legitimate session.
+
+`spoof_method`Requires raw-socket access (CAP_NET_RAW on Linux, root on macOS);
+on Linux, CAP_NET_ADMIN is additionally required because the send sequence
+number is read via TCP_REPAIR.
+On Windows, Administrator is required to install the embedded WinDivert kernel
+driver on first use. Windows on ARM64 is not supported.
+
+`CAP_NET_RAW``CAP_NET_ADMIN``TCP_REPAIR`#### spoof_method
+
+Since sing-box 1.14.0
+
+Client only
+
+How the forged segment is rejected by the real server.
+
+| Value | Behavior | 
+| --- | --- |
+| wrong-sequence (default) | The forged segment's TCP sequence number is placed before the server's receive window. | 
+| wrong-checksum | The forged segment's TCP checksum is deliberately invalid. | 
+
+`wrong-sequence``wrong-checksum`Conflict with spoof unset.
+
+`spoof`### ACME Fields
 
 Deprecated in sing-box 1.14.0
 
@@ -16109,6 +16586,27 @@ Uses Windows WLAN API.
 # Deprecated Feature List
 
 ## 1.14.0
+
+#### Legacy download_detour remote rule-set option
+
+`download_detour`Legacy download_detour remote rule-set option is deprecated,
+use http_client instead.
+
+`download_detour``http_client`Old field will be removed in sing-box 1.16.0.
+
+#### Implicit default HTTP client
+
+Implicit default HTTP client using the default outbound for remote rule-sets is deprecated.
+Configure http_clients and route.default_http_client explicitly.
+
+`http_clients``route.default_http_client`Old behavior will be removed in sing-box 1.16.0.
+
+#### Legacy dialer options in Tailscale endpoint
+
+Legacy dialer options in Tailscale endpoints are deprecated,
+use control_http_client instead.
+
+`control_http_client`Old fields will be removed in sing-box 1.16.0.
 
 #### Inline ACME options in TLS
 
@@ -17715,9 +18213,11 @@ Certificate Provider
 ### Migrate address filter fields to response matching
 
 Legacy Address Filter Fields (ip_cidr, ip_is_private without match_response) in DNS rules are deprecated,
-along with the Legacy rule_set_ip_cidr_accept_empty DNS rule item.
+along with the Legacy rule_set_ip_cidr_accept_empty DNS rule item. A DNS rule that references a rule-set
+containing only ip_cidr items (for example, a GeoIP rule-set) without match_response is also rejected
+at startup when legacy DNS mode is disabled.
 
-`ip_cidr``ip_is_private``match_response``rule_set_ip_cidr_accept_empty`In sing-box 1.14.0, use the evaluate action
+`ip_cidr``ip_is_private``match_response``rule_set_ip_cidr_accept_empty``ip_cidr``match_response`In sing-box 1.14.0, use the evaluate action
 to fetch a DNS response, then match against it explicitly with match_response.
 
 `evaluate``match_response`References
