@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-19 02:35:24 UTC
+> Generated on: 2026-04-21 02:31:34 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -201,7 +201,16 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.14
+#### 1.14.0-alpha.15
+
+- Add search domain support for Tailscale DNS 1
+- Fixes and improvements
+
+1:
+
+See Tailscale DNS Server.
+
+#### 1.13.9
 
 - Fixes and improvements
 
@@ -6777,6 +6786,10 @@ Specifically, default DNS resolvers are DNS servers that have SetLinkDefaultRout
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/tailscale/>
 
+Changes in sing-box 1.14.0
+
+accept_search_domain
+
 Since sing-box 1.12.0
 
 # Tailscale
@@ -6792,7 +6805,8 @@ Since sing-box 1.12.0
         "tag": "",
 
         "endpoint": "ts-ep",
-        "accept_default_resolvers": false
+        "accept_default_resolvers": false,
+        "accept_search_domain": false
       }
     ]
   }
@@ -6814,7 +6828,15 @@ Indicates whether default DNS resolvers should be accepted for fallback queries 
 
 if not enabled, NXDOMAIN will be returned for non-Tailscale domain queries.
 
-`NXDOMAIN`### Examples
+`NXDOMAIN`#### accept_search_domain
+
+Since sing-box 1.14.0
+
+When enabled, single-label queries (e.g. my-device) are retried against each Tailscale search domain until one resolves.
+
+`my-device`Default resolvers are not consulted for single-label queries regardless of accept_default_resolvers.
+
+`accept_default_resolvers`### Examples
 
 ```
 {
@@ -19500,12 +19522,6 @@ Do you or your friends use sing-box?
 
 You can help keep the project bug-free and feature rich by sponsoring
 the project maintainer via GitHub Sponsors.
-
-## Commercial Sponsors
-
-> Warp, Built for coding with multiple AI agents.
-
-Warp, Built for coding with multiple AI agents.
 
 ## Special Sponsors
 
