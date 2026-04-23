@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-21 02:31:34 UTC
+> Generated on: 2026-04-23 02:33:06 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -201,6 +201,19 @@ with this application without prior consent.
 
 # Change Log
 
+#### 1.14.0-alpha.16
+
+- Add ACME profile support for IP address certificates 1
+- Fixes and improvements
+
+1:
+
+See ACME Certificate Provider.
+
+#### 1.13.10
+
+- Fix process searcher failure introduced in 1.13.9
+
 #### 1.14.0-alpha.15
 
 - Add search domain support for Tailscale DNS 1
@@ -390,10 +403,6 @@ See Cloudflared.
 1:
 
 See Hysteria2 Inbound and Hysteria2 Outbound.
-
-#### 1.14.0-alpha.8
-
-- Fixes and improvements
 
 #### 1.13.5
 
@@ -14138,6 +14147,7 @@ Changes in sing-box 1.14.0
 
 account_key
  key_type
+ profile
  http_client
 
 # ACME
@@ -14167,6 +14177,7 @@ with_acme build tag required.
   },
   "dns01_challenge": {},
   "key_type": "",
+  "profile": "",
   "http_client": "" // or {}
 }
 
@@ -14272,7 +14283,15 @@ The private key type to generate for new certificates.
 | rsa2048 | RSA | 
 | rsa4096 | RSA | 
 
-`ed25519``p256``p384``rsa2048``rsa4096`#### http_client
+`ed25519``p256``p384``rsa2048``rsa4096`#### profile
+
+Since sing-box 1.14.0
+
+The ACME profile to use for certificate issuance.
+
+When empty and provider is Let's Encrypt, shortlived will be used automatically if any domain is an IP address.
+
+`provider``shortlived`#### http_client
 
 Since sing-box 1.14.0
 
