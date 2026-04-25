@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-23 02:33:06 UTC
+> Generated on: 2026-04-25 02:15:47 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -200,6 +200,24 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.18
+
+- Add Windows TLS engine 1
+- Fixes and improvements
+
+1:
+
+The new windows value for outbound TLS
+engine routes the TLS handshake
+through Schannel via SSPI. Only available on Windows build 17763 or
+later (Windows 10 version 1809, Windows Server 2019, or newer); TLS 1.3
+is only negotiated on Windows 11 or Windows Server 2022 and newer.
+
+`windows``engine`#### 1.13.11
+
+- Fix process searcher failure introduced in 1.13.9
+- Fixes and improvements
 
 #### 1.14.0-alpha.16
 
@@ -15471,6 +15489,7 @@ certificate_provider
  handshake_timeout
  spoof
  spoof_method
+ engine
  acme
 
 Changes in sing-box 1.13.0
@@ -15658,6 +15677,8 @@ Enable TLS.
 
 #### engine
 
+Since sing-box 1.14.0
+
 Client only
 
 TLS engine to use.
@@ -15666,15 +15687,38 @@ Values:
 
 - go (default)
 - apple
+- windows
 
-`go``apple`apple uses Network.framework, only available on Apple platforms and only supports direct TCP TLS client connections.
+`go``apple``windows`Supported fields:
 
-`apple`Experimental only: due to the high memory overhead of both CGO and Network.framework,
-do not use in hot paths on iOS and tvOS.
-If you want to circumvent TLS fingerprint-based proxy censorship,
-use NaiveProxy instead.
+- server_name
+- insecure
+- alpn
+- min_version
+- max_version
+- certificate / certificate_path
+- certificate_public_key_sha256
+- handshake_timeout
 
-Supported fields:
+`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
+
+- disable_sni
+- cipher_suites
+- curve_preferences
+- client_certificate / client_certificate_path / client_key / client_key_path
+- fragment / record_fragment
+- kernel_tx / kernel_rx
+- ech
+- utls
+- reality
+
+`disable_sni``cipher_suites``curve_preferences``client_certificate``client_certificate_path``client_key``client_key_path``fragment``record_fragment``kernel_tx``kernel_rx``ech``utls``reality`windows uses Schannel via SSPI. Only available on Windows build 17763 or later (Windows 10 version 1809, Windows Server 2019, or newer).
+
+`windows`TLS 1.3 is only negotiated on Windows 11 or Windows Server 2022 and newer. On older Windows versions, Schannel caps the connection at TLS 1.2 even when max_version is 1.3.
+
+`max_version``1.3`The default version range is TLS 1.2 to TLS 1.3, matching the go engine.
+
+`go`Supported fields:
 
 - server_name
 - insecure
