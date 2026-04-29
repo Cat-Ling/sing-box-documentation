@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-04-27 02:40:33 UTC
+> Generated on: 2026-04-29 02:47:47 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -201,7 +201,26 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.18
+#### 1.14.0-alpha.19
+
+- Preserve comments between formatting
+- Add cipher, MAC, and key exchange algorithm options for SSH outbound 1
+- Add DNS query timeout options 2
+** Fixes and improvements
+
+1:
+
+See SSH.
+
+2:
+
+Adds dns.timeout, with per-query
+overrides via DNS rule action
+and resolve route rule action,
+and a timeout field on
+domain_resolver.
+
+`dns.timeout``resolve``timeout``domain_resolver`#### 1.14.0-alpha.18
 
 - Add Windows TLS engine 1
 - Fixes and improvements
@@ -4947,6 +4966,7 @@ Changes in sing-box 1.14.0
 
 independent_cache
  optimistic
+ timeout
 
 Changes in sing-box 1.12.0
 
@@ -4972,6 +4992,7 @@ cache_capacity
     "independent_cache": false,
     "cache_capacity": 0,
     "optimistic": false, // or {}
+    "timeout": "",
     "reverse_mapping": false,
     "client_subnet": "",
     "fakeip": {}
@@ -5057,7 +5078,17 @@ The maximum time an expired cache entry can be served optimistically.
 
 3d is used by default.
 
-`3d`#### reverse_mapping
+`3d`#### timeout
+
+Since sing-box 1.14.0
+
+Default timeout for each DNS query.
+
+10s is used by default.
+
+`10s`Can be overridden by rules.[].timeout (DNS rule action) or domain_resolver.timeout.
+
+`rules.[].timeout``domain_resolver.timeout`#### reverse_mapping
 
 Stores a reverse mapping of IP addresses after responding to a DNS query in order to provide domain names when routing.
 
@@ -5794,6 +5825,7 @@ strategy
  evaluate
  respond
  disable_optimistic_cache
+ timeout
 
 Changes in sing-box 1.12.0
 
@@ -5812,6 +5844,7 @@ Since sing-box 1.11.0
   "disable_cache": false,
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
+  "timeout": "",
   "client_subnet": null
 }
 
@@ -5851,7 +5884,15 @@ Disable optimistic DNS caching in this query.
 
 Rewrite TTL in DNS responses.
 
-#### client_subnet
+#### timeout
+
+Since sing-box 1.14.0
+
+Override the DNS query timeout for matched queries.
+
+Will override dns.timeout.
+
+`dns.timeout`#### client_subnet
 
 Append a edns0-subnet OPT extra record with the specified IP prefix to every query by default.
 
@@ -5870,6 +5911,7 @@ Since sing-box 1.14.0
   "disable_cache": false,
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
+  "timeout": "",
   "client_subnet": null
 }
 
@@ -5904,7 +5946,15 @@ Disable optimistic DNS caching in this query.
 
 Rewrite TTL in DNS responses.
 
-#### client_subnet
+#### timeout
+
+Since sing-box 1.14.0
+
+Override the DNS query timeout for matched queries.
+
+Will override dns.timeout.
+
+`dns.timeout`#### client_subnet
 
 Append a edns0-subnet OPT extra record with the specified IP prefix to every query by default.
 
@@ -5937,6 +5987,7 @@ Only allowed after a preceding top-level evaluate rule. If the action is reached
   "disable_cache": false,
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
+  "timeout": "",
   "client_subnet": null
 }
 
@@ -10956,6 +11007,12 @@ See Dial Fields for details.
 
 # SSH
 
+Changes in sing-box 1.14.0
+
+cipher
+ mac
+ kex_algorithm
+
 ### Structure
 
 ```
@@ -10975,6 +11032,9 @@ See Dial Fields for details.
   ],
   "host_key_algorithms": [],
   "client_version": "SSH-2.0-OpenSSH_7.4p1",
+  "cipher": [],
+  "mac": [],
+  "kex_algorithm": [],
 
   ... // Dial Fields
 }
@@ -11024,6 +11084,24 @@ Host key algorithms.
 #### client_version
 
 Client version. Random version will be used if empty.
+
+#### cipher
+
+Since sing-box 1.14.0
+
+Allowed ciphers. Default values are used if empty.
+
+#### mac
+
+Since sing-box 1.14.0
+
+Allowed MAC algorithms. Default values are used if empty.
+
+#### kex_algorithm
+
+Since sing-box 1.14.0
+
+Allowed key exchange algorithms. Default values are used if empty.
 
 ### Dial Fields
 
@@ -12541,6 +12619,7 @@ bypass
 Changes in sing-box 1.14.0
 
 resolve.disable_optimistic_cache
+ resolve.timeout
 
 Changes in sing-box 1.12.0
 
@@ -12818,6 +12897,7 @@ Timeout for sniffing.
   "disable_cache": false,
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
+  "timeout": "",
   "client_subnet": null
 }
 
@@ -12853,7 +12933,15 @@ Since sing-box 1.12.0
 
 Rewrite TTL in DNS responses.
 
-#### client_subnet
+#### timeout
+
+Since sing-box 1.14.0
+
+Override the DNS query timeout for this lookup.
+
+Will override dns.timeout.
+
+`dns.timeout`#### client_subnet
 
 Since sing-box 1.12.0
 
@@ -14444,6 +14532,10 @@ MagicDNS and HTTPS must be enabled in the Tailscale admin console.
 **Source URL**: <https://sing-box.sagernet.org/configuration/shared/dial/>
 
 # Dial Fields
+
+Changes in sing-box 1.14.0
+
+domain_resolver
 
 Changes in sing-box 1.13.0
 
