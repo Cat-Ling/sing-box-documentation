@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-05-09 02:44:29 UTC
+> Generated on: 2026-05-11 02:59:27 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -28,6 +28,7 @@
 - [Service](#service)
 - [CCM](#ccm)
 - [DERP](#derp)
+- [Hysteria Realm](#hysteria-realm)
 - [OCM](#ocm)
 - [Resolved](#resolved)
 - [SSM API](#ssm-api)
@@ -113,6 +114,7 @@
 - [DNS over HTTPS (DoH)](#dns-over-https-(doh))
 - [Legacy](#legacy)
 - [Local](#local)
+- [mDNS](#mdns)
 - [DNS over QUIC (DoQ)](#dns-over-quic-(doq))
 - [Resolved](#resolved)
 - [Tailscale](#tailscale)
@@ -200,6 +202,73 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.22
+
+- Fixes and improvements
+
+#### 1.14.0-alpha.21
+
+- Allow customizing TUN DNS mode and hijack interface DNS by default 1
+- Add mDNS DNS server 2
+- Add preferred_by DNS rule item 3
+- Add neighbor-based hostname resolution for the local DNS server 4
+- Update NaiveProxy to 148.0.7778.96-1
+- Add more TLS spoof methods and route rule action support 5
+- Fixes and improvements
+
+`preferred_by`1:
+
+Adds dns_mode and
+dns_address on the TUN inbound.
+The default hijack mode now sets the platform's native interface DNS
+(systemd-resolved on Linux, per-interface DNS on Windows and Apple) and
+installs platform-level DNS hijacking (an iproute2 rule on Linux,
+nftables DNAT when auto_redirect is enabled, WFP filters on Windows when
+strict_route is enabled). Earlier versions did not touch the interface
+DNS or the platform firewall.
+
+`dns_mode``dns_address``hijack``systemd-resolved``iproute2``auto_redirect``strict_route`2:
+
+The new mDNS DNS server sends queries via
+multicast on the local network. The default
+local DNS server also routes queries for
+*.local. and IPv4/IPv6 link-local reverse zones via mDNS on non-Apple
+platforms (and via the system resolver on Apple), so an explicit mdns
+server is only needed to reference it from
+preferred_by or to use it
+standalone.
+
+`*.local.``mdns``preferred_by`3:
+
+The new preferred_by DNS rule
+item matches domains that the listed DNS servers consider their preferred
+names. Supported server types are hosts, local, mdns, tailscale, and
+resolved. The Tailscale,
+Hosts and
+Resolved example pages have been
+updated to use this rule item in place of the previous evaluate +
+ip_accept_any + respond pattern.
+
+`preferred_by``hosts``local``mdns``tailscale``resolved``evaluate``ip_accept_any``respond`4:
+
+Adds neighbor_domain
+on the local DNS server. Listed suffixes (each starting with .) cause
+A/AAAA queries for single-label hosts under those suffixes to be answered
+from the neighbor resolver instead of
+the upstream (for example [".", ".lan"]).
+
+`neighbor_domain``.``[".", ".lan"]`5:
+
+Adds wrong-ack, wrong-md5, and wrong-timestamp
+spoof methods, and adds
+tls_spoof /
+tls_spoof_method
+to route rule actions for per-rule TLS spoofing without outbound TLS settings.
+
+`wrong-ack``wrong-md5``wrong-timestamp``tls_spoof``tls_spoof_method`#### 1.14.0-alpha.20
+
+** Fixes and improvements
 
 #### 1.14.0-alpha.19
 
@@ -5156,6 +5225,7 @@ Changes in sing-box 1.14.0
 
 source_mac_address
  source_hostname
+ preferred_by
  match_response
  rule_set_ip_cidr_accept_empty
  response_rcode
@@ -5315,6 +5385,10 @@ rule_set
         ],
         "source_hostname": [
           "my-device"
+        ],
+        "preferred_by": [
+          "local",
+          "ts-dns"
         ],
         "wifi_ssid": [
           "My WIFI"
@@ -5616,7 +5690,21 @@ Only supported on Linux, macOS, or in graphical clients on Android and macOS. Se
 
 Match source device hostname from DHCP leases.
 
-#### wifi_ssid
+#### preferred_by
+
+Since sing-box 1.14.0
+
+Match specified DNS servers' preferred domains.
+
+| Type | Match | 
+| --- | --- |
+| hosts | Match predefined entries and entries in hosts files | 
+| local | Match hosts entries, neighbor-resolved hosts, and mDNS local domains | 
+| mdns | Match mDNS local domains (*.local. and IPv4/IPv6 link-local reverse zones) | 
+| tailscale | Match MagicDNS hosts and DNS route suffixes | 
+| resolved | Match split DNS and search domains from systemd-resolved links | 
+
+`hosts``local``mdns``*.local.``tailscale``resolved`#### wifi_ssid
 
 Only supported in graphical clients on Android and Apple platforms, or on Linux.
 
@@ -6080,6 +6168,10 @@ List of text DNS record to respond as extra records.
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/>
 
+Changes in sing-box 1.14.0
+
+mdns
+
 Changes in sing-box 1.12.0
 
 type
@@ -6118,11 +6210,12 @@ The type of the DNS server.
 | https | HTTPS | 
 | h3 | HTTP/3 | 
 | dhcp | DHCP | 
+| mdns | mDNS | 
 | fakeip | Fake IP | 
 | tailscale | Tailscale | 
 | resolved | Resolved | 
 
-`local``hosts``tcp``udp``tls``quic``https``h3``dhcp``fakeip``tailscale``resolved`#### tag
+`local``hosts``tcp``udp``tls``quic``https``h3``dhcp``mdns``fakeip``tailscale``resolved`#### tag
 
 The tag of the DNS server.
 
@@ -6300,13 +6393,9 @@ Example:
     ],
     "rules": [
       {
-        "action": "evaluate",
+        "preferred_by": "hosts",
+        "action": "route",
         "server": "hosts"
-      },
-      {
-        "match_response": true,
-        "ip_accept_any": true,
-        "action": "respond"
       }
     ]
   }
@@ -6612,6 +6701,10 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/local/>
 
+Changes in sing-box 1.14.0
+
+neighbor_domain
+
 Changes in sing-box 1.13.0
 
 prefer_go
@@ -6629,7 +6722,8 @@ Since sing-box 1.12.0
       {
         "type": "local",
         "tag": "",
-        "prefer_go": false
+        "prefer_go": false,
+        "neighbor_domain": []
 
         // Dial Fields
       }
@@ -6674,7 +6768,65 @@ On devices running Android versions lower than 10, this interface can only resol
 `local`On macOS, local will try DHCP first in Network Extension, since DHCP respects DIal Fields,
 it will not be disabled by prefer_go.
 
-`local``prefer_go`### Dial Fields
+`local``prefer_go`#### neighbor_domain
+
+Since sing-box 1.14.0
+
+A list of domain suffixes for which A/AAAA queries are answered from the
+neighbor resolver instead of the upstream.
+
+Each entry must start with .. Only queries whose host part (the portion
+before the suffix) contains no dots are matched; . matches any
+single-label name such as nas.
+
+`.``.``nas`Example: [".", ".lan"].
+
+`[".", ".lan"]`### Dial Fields
+
+See Dial Fields for details.
+
+
+---
+
+## mDNS
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/mdns/>
+
+Since sing-box 1.14.0
+
+# mDNS
+
+### Structure
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "mdns",
+        "tag": "",
+
+        "interface": [],
+
+        // Dial Fields
+      }
+    ]
+  }
+}
+
+```
+
+You usually do not need an explicit mdns server in addition to a Local server: the local server already routes queries for *.local. and IPv4/IPv6 link-local reverse zones via mDNS on non-Apple platforms and via the system resolver on Apple platforms. Add an explicit mdns server only when you want to reference it from preferred_by or use it standalone.
+
+`mdns``*.local.``mdns``preferred_by`### Fields
+
+#### interface
+
+List of network interface names to send mDNS queries on.
+
+When empty, all interfaces that are up, multicast-capable, and non-loopback are used.
+
+### Dial Fields
 
 See Dial Fields for details.
 
@@ -6803,13 +6955,9 @@ Specifically, default DNS resolvers are DNS servers that have SetLinkDefaultRout
     ],
     "rules": [
       {
-        "action": "evaluate",
+        "preferred_by": "resolved",
+        "action": "route",
         "server": "resolved"
-      },
-      {
-        "match_response": true,
-        "ip_accept_any": true,
-        "action": "respond"
       }
     ]
   }
@@ -6932,13 +7080,9 @@ When enabled, single-label queries (e.g. my-device) are retried against each Tai
     ],
     "rules": [
       {
-        "action": "evaluate",
+        "preferred_by": "ts",
+        "action": "route",
         "server": "ts"
-      },
-      {
-        "match_response": true,
-        "ip_accept_any": true,
-        "action": "respond"
       }
     ]
   }
@@ -8322,6 +8466,7 @@ Use QUIC fields disable_path_mtu_discovery instead.
 Changes in sing-box 1.14.0
 
 bbr_profile
+ realm
 
 Changes in sing-box 1.11.0
 
@@ -8356,7 +8501,14 @@ masquerade
 
   "masquerade": "", // or {}
   "bbr_profile": "",
-  "brutal_debug": false
+  "brutal_debug": false,
+  "realm": {
+    "server_url": "https://realm.example.com",
+    "token": "",
+    "realm_id": "",
+    "stun_servers": [],
+    "http_client": {}
+  }
 }
 
 ```
@@ -8482,6 +8634,50 @@ BBR congestion control algorithm profile, one of conservative standard aggressiv
 `standard`#### brutal_debug
 
 Enable debug information logging for Hysteria Brutal CC.
+
+#### realm
+
+Since sing-box 1.14.0
+
+Register this inbound to a Hysteria Realm rendezvous service to enable NAT traversal.
+
+The inbound discovers its public addresses via STUN, registers them on the realm, and uses UDP hole-punching to accept incoming clients without a publicly reachable listen address.
+
+See Hysteria Realm for the rendezvous service.
+
+#### realm.server_url
+
+Required
+
+Realm rendezvous service URL.
+
+#### realm.token
+
+Bearer token for the realm. Must match one of users[].token configured on the realm.
+
+`users[].token`#### realm.realm_id
+
+Required
+
+Slot identifier on the realm.
+
+1–64 characters, must match ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$.
+
+`^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$`Outbounds must use the same realm_id to find this server.
+
+`realm_id`#### realm.stun_servers
+
+Required
+
+List of STUN servers (host or host:port) used to discover public addresses.
+
+`host``host:port`Port defaults to 3478.
+
+`3478`#### realm.http_client
+
+HTTP client used to talk to the realm.
+
+See HTTP Client for details.
 
 
 ---
@@ -9121,6 +9317,8 @@ Changes in sing-box 1.14.0
 
 include_mac_address
  exclude_mac_address
+ dns_mode
+ dns_address
 
 Changes in sing-box 1.13.3
 
@@ -9186,6 +9384,11 @@ Only supported on Linux, Windows and macOS.
     "fdfe:dcba:9876::1/126"
   ],
   "mtu": 9000,
+  "dns_mode": "hijack",
+  "dns_address": [
+    "172.18.0.2",
+    "fdfe:dcba:9876::2"
+  ],
   "auto_route": true,
   "iproute2_table_index": 2022,
   "iproute2_rule_index": 9000,
@@ -9326,7 +9529,53 @@ inet6_address is merged to address and will be removed in sing-box 1.12.0.
 
 The maximum transmission unit.
 
-#### gso
+#### dns_mode
+
+Since sing-box 1.14.0
+
+How DNS is handled on the TUN interface.
+
+| Mode | Description | 
+| --- | --- |
+| disabled | Do not configure native DNS and do not hijack DNS traffic. | 
+| native | Set the platform's native interface DNS where possible: per-interface DNS on Windows and Apple platforms, and systemd-resolved interface DNS on Linux. | 
+| hijack | Same as native, with additional port 53 hijacking described below. Used by default. | 
+
+`disabled``native``systemd-resolved``hijack``native`hijack adds the following on top of native:
+
+`hijack``native`On Linux: only DNS sent to non-local destinations can be intercepted.
+Traffic destined to addresses on the host's own interfaces (such as
+127.0.0.53 or the host's LAN-side IP) is delivered through the kernel
+local routing table before any user rule applies, and OUTPUT NAT cannot
+redirect packets going through lo.
+
+`127.0.0.53``local``OUTPUT``lo`- Without auto_redirect, an iproute2 rule makes port 53 skip the main
+  table's specific-route lookup, forcing DNS that would otherwise be
+  delivered through a directly-attached subnet through the TUN. Destination
+  addresses are not rewritten.
+- With auto_redirect, an nftables rule DNATs port 53 traffic directly to
+  dns_address.
+
+`auto_redirect``iproute2``main``auto_redirect``dns_address`On Windows with strict_route: a WFP filter blocks port
+53 traffic going through interfaces other than the TUN.
+
+`strict_route`#### dns_address
+
+Since sing-box 1.14.0
+
+List of DNS server addresses used by dns_mode.
+
+`dns_mode`When unset, sing-box derives one address per family by taking the next IP after
+the first IPv4/IPv6 entry in address. Connections toward those
+derived addresses are additionally hijacked into the sing-box DNS module,
+equivalent to a hijack-dns
+route action; this preserves the behaviour from before this option was added.
+
+`address``hijack-dns`When set, this auto-hijack is not applied; configure an explicit
+hijack-dns route rule if the
+behaviour is still required.
+
+`hijack-dns`#### gso
 
 Deprecated in sing-box 1.11.0
 
@@ -10427,6 +10676,7 @@ Changes in sing-box 1.14.0
 
 hop_interval_max
  bbr_profile
+ realm
 
 Changes in sing-box 1.11.0
 
@@ -10461,6 +10711,13 @@ server_ports
 
   "bbr_profile": "",
   "brutal_debug": false,
+  "realm": {
+    "server_url": "https://realm.example.com",
+    "token": "",
+    "realm_id": "",
+    "stun_servers": [],
+    "http_client": {}
+  },
 
   ... // Dial Fields
 }
@@ -10485,7 +10742,9 @@ Required
 
 The server address.
 
-#### server_port
+Conflicts with realm.
+
+`realm`#### server_port
 
 Required
 
@@ -10493,15 +10752,17 @@ The server port.
 
 Ignored if server_ports is set.
 
-`server_ports`#### server_ports
+`server_ports`Conflicts with realm.
+
+`realm`#### server_ports
 
 Since sing-box 1.11.0
 
 Server port range list.
 
-Conflicts with server_port.
+Conflicts with server_port and realm.
 
-`server_port`#### hop_interval
+`server_port``realm`#### hop_interval
 
 Since sing-box 1.11.0
 
@@ -10566,6 +10827,50 @@ BBR congestion control algorithm profile, one of conservative standard aggressiv
 `standard`#### brutal_debug
 
 Enable debug information logging for Hysteria Brutal CC.
+
+#### realm
+
+Since sing-box 1.14.0
+
+Connect to a Hysteria2 server through a Hysteria Realm rendezvous service.
+
+The outbound queries the realm for the server's current public addresses, performs UDP hole-punching, and proceeds with the normal QUIC handshake.
+
+Conflicts with server, server_port and server_ports.
+
+`server``server_port``server_ports`The TLS SNI defaults to the host portion of server_url. Set tls.server_name to match the certificate the Hysteria2 server presents.
+
+`server_url``tls.server_name`See Hysteria Realm for the rendezvous service.
+
+#### realm.server_url
+
+Required
+
+Realm rendezvous service URL.
+
+#### realm.token
+
+Bearer token for the realm. Must match one of users[].token configured on the realm.
+
+`users[].token`#### realm.realm_id
+
+Required
+
+The same slot identifier the target Hysteria2 server registered.
+
+#### realm.stun_servers
+
+Required
+
+List of STUN servers (host or host:port) used to discover this client's public addresses.
+
+`host``host:port`Port defaults to 3478.
+
+`3478`#### realm.http_client
+
+HTTP client used to talk to the realm.
+
+See HTTP Client for details.
 
 ### Dial Fields
 
@@ -12620,6 +12925,8 @@ Changes in sing-box 1.14.0
 
 resolve.disable_optimistic_cache
  resolve.timeout
+ tls_spoof
+ tls_spoof_method
 
 Changes in sing-box 1.12.0
 
@@ -12758,7 +13065,9 @@ hijack-dns hijack DNS requests to the sing-box DNS module.
   "udp_timeout": "",
   "tls_fragment": false,
   "tls_fragment_fallback_delay": "",
-  "tls_record_fragment": ""
+  "tls_record_fragment": "",
+  "tls_spoof": "",
+  "tls_spoof_method": ""
 }
 
 ```
@@ -12858,7 +13167,27 @@ Since sing-box 1.12.0
 
 Fragment TLS handshake into multiple TLS records to bypass firewalls.
 
-### sniff
+#### tls_spoof
+
+Since sing-box 1.14.0
+
+Linux/macOS/Windows only, requires elevated privileges
+
+Inject a forged TLS ClientHello carrying this SNI before the real one,
+to fool SNI-filtering middleboxes that permit specific hostnames.
+
+See outbound TLS spoof for details
+and required privileges.
+
+`spoof`#### tls_spoof_method
+
+Since sing-box 1.14.0
+
+How the forged segment is rejected by the real server. See outbound TLS
+spoof_method for the full table
+of accepted values and platform notes.
+
+`spoof_method`### sniff
 
 ```
 {
@@ -13603,11 +13932,12 @@ Since sing-box 1.12.0
 | --- | --- |
 | ccm | CCM | 
 | derp | DERP | 
+| hysteria-realm | Hysteria Realm | 
 | ocm | OCM | 
 | resolved | Resolved | 
 | ssm-api | SSM API | 
 
-`ccm``derp``ocm``resolved``ssm-api`#### tag
+`ccm``derp``hysteria-realm``ocm``resolved``ssm-api`#### tag
 
 The tag of the endpoint.
 
@@ -13894,6 +14224,77 @@ Object fields:
 { "enabled": true, "listen_port": __PORT__ }
 
 ```
+
+
+---
+
+## Hysteria Realm
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/service/hysteria-realm/>
+
+Since sing-box 1.14.0
+
+# Hysteria Realm
+
+Hysteria Realm is a rendezvous service for Hysteria2 NAT traversal.
+
+A Hysteria2 server behind NAT registers its STUN-discovered public addresses to a stable realm endpoint; clients query the realm to learn the server's current addresses and perform UDP hole-punching to establish a direct QUIC connection.
+
+The realm only carries control-plane signaling. Once hole-punching succeeds, all proxy traffic flows directly between client and server.
+
+### Structure
+
+```
+{
+  "type": "hysteria-realm",
+
+  ... // Listen Fields
+
+  "tls": {},
+  "users": [
+    {
+      "name": "",
+      "token": "",
+      "max_realms": 0
+    }
+  ]
+}
+
+```
+
+### Listen Fields
+
+See Listen Fields for details.
+
+### Fields
+
+#### tls
+
+TLS configuration, see TLS.
+
+When configured, the realm serves HTTP/2 over TLS; otherwise plain HTTP/1.1.
+
+#### users
+
+Required
+
+Authorized users.
+
+#### users.name
+
+Required
+
+Username, used in logs and as the quota key.
+
+#### users.token
+
+Required
+
+Bearer token presented by Hysteria2 inbounds and outbounds via Authorization: Bearer <token>.
+
+`Authorization: Bearer <token>`#### users.max_realms
+
+Maximum number of realm slots this user may hold concurrently.
 
 
 ---
@@ -15400,7 +15801,9 @@ Match LAN devices by MAC address and hostname using
 source_mac_address and
 source_hostname rule items.
 
-`source_mac_address``source_hostname`Neighbor resolution is automatically enabled when these rule items exist.
+`source_mac_address``source_hostname`Neighbor resolution is automatically enabled when these rule items exist
+or when a local DNS server sets
+neighbor_domain.
 Use route.find_neighbor to force enable it for logging without rules.
 
 `route.find_neighbor`## Linux
@@ -16256,10 +16659,11 @@ How the forged segment is rejected by the real server.
 | --- | --- |
 | wrong-sequence (default) | The forged segment's TCP sequence number is placed before the server's receive window. | 
 | wrong-checksum | The forged segment's TCP checksum is deliberately invalid. | 
+| wrong-ack | The forged segment's TCP acknowledgment number is placed before the server's send window. | 
+| wrong-md5 | The forged segment carries a TCP-MD5 signature option, which the server rejects since no MD5 key is negotiated. | 
+| wrong-timestamp | The forged segment carries a backdated TCP timestamp, which the server rejects as a PAWS replay. Linux/Windows only; not supported on macOS. | 
 
-`wrong-sequence``wrong-checksum`Conflict with spoof unset.
-
-`spoof`### ACME Fields
+`wrong-sequence``wrong-checksum``wrong-ack``wrong-md5``wrong-timestamp`### ACME Fields
 
 Deprecated in sing-box 1.14.0
 
