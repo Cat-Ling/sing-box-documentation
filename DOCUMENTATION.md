@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-05-11 02:59:27 UTC
+> Generated on: 2026-05-13 02:56:38 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -203,11 +203,29 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.22
+#### 1.14.0-alpha.23
 
 - Fixes and improvements
 
-#### 1.14.0-alpha.21
+#### 1.14.0-alpha.22
+
+- Add Hysteria Realm service and Hysteria2 NAT traversal support 1
+- Fixes and improvements
+
+1:
+
+The new Hysteria Realm service
+is a rendezvous service for Hysteria2 NAT traversal. A Hysteria2 server
+behind NAT registers its STUN-discovered public addresses on a stable
+realm endpoint via the new
+realm inbound field;
+clients query the realm via the new
+realm outbound field to
+learn the server's current addresses and perform UDP hole-punching to
+establish a direct QUIC connection. Once hole-punching succeeds, all
+proxy traffic flows directly between client and server.
+
+`realm``realm`#### 1.14.0-alpha.21
 
 - Allow customizing TUN DNS mode and hijack interface DNS by default 1
 - Add mDNS DNS server 2
@@ -8507,6 +8525,7 @@ masquerade
     "token": "",
     "realm_id": "",
     "stun_servers": [],
+    "stun_domain_resolver": "", // or {}
     "http_client": {}
   }
 }
@@ -8671,9 +8690,17 @@ Required
 
 List of STUN servers (host or host:port) used to discover public addresses.
 
-`host``host:port`Port defaults to 3478.
+`host``host:port`#### realm.stun_domain_resolver
 
-`3478`#### realm.http_client
+Set domain resolver to use for resolving STUN server domain names.
+
+This option uses the same format as the route DNS rule action without the action field.
+
+`action`Setting this option directly to a string is equivalent to setting server of this options.
+
+`server`If empty, the default domain resolver is used.
+
+#### realm.http_client
 
 HTTP client used to talk to the realm.
 
@@ -10864,9 +10891,9 @@ Required
 
 List of STUN servers (host or host:port) used to discover this client's public addresses.
 
-`host``host:port`Port defaults to 3478.
+`host``host:port`Domain names are resolved using domain_resolver from Dial Fields.
 
-`3478`#### realm.http_client
+`domain_resolver`#### realm.http_client
 
 HTTP client used to talk to the realm.
 
@@ -14251,6 +14278,9 @@ The realm only carries control-plane signaling. Once hole-punching succeeds, all
   ... // Listen Fields
 
   "tls": {},
+
+  ... // HTTP2 Fields
+
   "users": [
     {
       "name": "",
@@ -14265,6 +14295,10 @@ The realm only carries control-plane signaling. Once hole-punching succeeds, all
 ### Listen Fields
 
 See Listen Fields for details.
+
+### HTTP2 Fields
+
+See HTTP2 Fields for details.
 
 ### Fields
 
