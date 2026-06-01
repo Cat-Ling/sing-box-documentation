@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-05-29 03:28:47 UTC
+> Generated on: 2026-06-01 03:56:58 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -203,8 +203,54 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.23
+#### 1.14.0-alpha.27
 
+- Add Tailscale SSH server 1
+- Fixes and improvements
+
+1:
+
+Adds an ssh_server field to
+Tailscale endpoints, running a Tailscale SSH
+server on tailnet port 22. Access is controlled by the SSH ACL in the Tailscale
+admin console, which maps each connection to a local user (behavior varies by
+platform; iOS and tvOS are not yet supported). The value may be true (equivalent
+to { "enabled": true }), or an object that additionally sets
+disable_pty,
+disable_sftp, and
+disable_forwarding.
+
+`ssh_server``true``{ "enabled": true }``disable_pty``disable_sftp``disable_forwarding`#### 1.14.0-alpha.26
+
+- Add gecko obfs for Hysteria2 1
+- Fixes and improvements
+
+1:
+
+Adds gecko as a new QUIC traffic obfuscation type for
+Hysteria2 inbound and
+outbound, alongside the
+existing salamander. Gecko supports configurable
+min_packet_size
+(default 512) and
+max_packet_size
+(default 1200) fields.
+
+`gecko``salamander``min_packet_size``max_packet_size`#### 1.14.0-alpha.25
+
+- Revert Tailscale endpoint dial fields deprecation and remove control_http_client 1
+- Fixes and improvements
+
+`control_http_client`1:
+
+The control_http_client field on
+Tailscale endpoints introduced in
+1.14.0-alpha.13 is removed, and the deprecation of
+Dial Fields is reverted.
+
+`control_http_client``1.14.0-alpha.13`#### 1.13.12
+
+- Update naiveproxy to v148.0.7778.96-1
 - Fixes and improvements
 
 #### 1.14.0-alpha.22
@@ -7374,8 +7420,7 @@ The tag of the endpoint.
 
 Changes in sing-box 1.14.0
 
-control_http_client
- Dial Fields
+ssh_server
 
 Changes in sing-box 1.13.0
 
@@ -7397,7 +7442,6 @@ Since sing-box 1.12.0
   "state_directory": "",
   "auth_key": "",
   "control_url": "",
-  "control_http_client": {}, // or ""
   "ephemeral": false,
   "hostname": "",
   "accept_routes": false,
@@ -7412,6 +7456,7 @@ Since sing-box 1.12.0
   "system_interface_name": "",
   "system_interface_mtu": 0,
   "udp_timeout": "5m",
+  "ssh_server": false,
 
   ... // Dial Fields
 }
@@ -7525,21 +7570,57 @@ UDP NAT expiration time.
 
 5m will be used by default.
 
-`5m`#### control_http_client
+`5m`#### ssh_server
 
 Since sing-box 1.14.0
 
-HTTP Client for connecting to the Tailscale control plane.
+Run a Tailscale SSH server on tailnet port 22.
 
-See HTTP Client Fields for details.
+Access is controlled by the SSH ACL in the Tailscale admin console, which maps each connection to a local user. How that user is resolved, and which users are allowed, depends on the platform:
+
+- Linux and macOS: the user is resolved from the system user database. Switching to a user other than the one sing-box runs as requires running as root; without root, sessions are limited to the current user.
+- Windows: sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused.
+- Android: the user is resolved by the app rather than the system user database. root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory, so the target application must be installed. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access; without root, sessions are limited to the sing-box user.
+- macOS: the SSH server is only available in the standalone version and requires the Root Helper; the App Store version is not supported.
+- iOS and tvOS: not yet supported.
+
+`root``shell``termux``com.termux``sing-box``root``termux`Object format:
+
+```
+{
+  "enabled": true,
+  "disable_pty": false,
+  "disable_sftp": false,
+  "disable_forwarding": false
+}
+
+```
+
+Setting ssh_server value to true is equivalent to { "enabled": true }.
+
+`ssh_server``true``{ "enabled": true }`#### ssh_server.enabled
+
+Enable the SSH server.
+
+#### ssh_server.disable_pty
+
+Refuse PTY allocation requests.
+
+#### ssh_server.disable_sftp
+
+Refuse the SFTP subsystem.
+
+#### ssh_server.disable_forwarding
+
+Refuse local and remote TCP and Unix-socket forwarding, including SSH agent forwarding.
 
 ### Dial Fields
 
-Deprecated in sing-box 1.14.0
+Note
 
-Dial Fields in Tailscale endpoints are deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0, use control_http_client instead.
+Dial Fields in Tailscale endpoints only control how it connects to the control plane and have nothing to do with actual connections.
 
-`control_http_client`See Dial Fields for details.
+See Dial Fields for details.
 
 
 ---
@@ -8485,6 +8566,7 @@ Changes in sing-box 1.14.0
 
 bbr_profile
  realm
+ obfs
 
 Changes in sing-box 1.11.0
 
@@ -8555,15 +8637,31 @@ Conflict with ignore_client_bandwidth.
 
 `ignore_client_bandwidth`#### obfs.type
 
-QUIC traffic obfuscator type, only available with salamander.
+QUIC traffic obfuscator type, one of salamander gecko.
 
-`salamander`Disabled if empty.
+`salamander``gecko`Disabled if empty.
 
 #### obfs.password
 
 QUIC traffic obfuscator password.
 
-#### users
+#### obfs.min_packet_size
+
+Since sing-box 1.14.0
+
+Minimum on-wire packet size in bytes. Gecko only.
+
+512 is used by default.
+
+`512`#### obfs.max_packet_size
+
+Since sing-box 1.14.0
+
+Maximum on-wire packet size in bytes. Gecko only.
+
+1200 is used by default.
+
+`1200`#### users
 
 Hysteria2 users
 
@@ -10704,6 +10802,7 @@ Changes in sing-box 1.14.0
 hop_interval_max
  bbr_profile
  realm
+ obfs
 
 Changes in sing-box 1.11.0
 
@@ -10813,15 +10912,31 @@ If empty, the BBR congestion control algorithm will be used instead of Hysteria 
 
 #### obfs.type
 
-QUIC traffic obfuscator type, only available with salamander.
+QUIC traffic obfuscator type, one of salamander gecko.
 
-`salamander`Disabled if empty.
+`salamander``gecko`Disabled if empty.
 
 #### obfs.password
 
 QUIC traffic obfuscator password.
 
-#### password
+#### obfs.min_packet_size
+
+Since sing-box 1.14.0
+
+Minimum on-wire packet size in bytes. Gecko only.
+
+512 is used by default.
+
+`512`#### obfs.max_packet_size
+
+Since sing-box 1.14.0
+
+Maximum on-wire packet size in bytes. Gecko only.
+
+1200 is used by default.
+
+`1200`#### password
 
 Authentication password.
 
@@ -17215,13 +17330,6 @@ Implicit default HTTP client using the default outbound for remote rule-sets is 
 Configure http_clients and route.default_http_client explicitly.
 
 `http_clients``route.default_http_client`Old behavior will be removed in sing-box 1.16.0.
-
-#### Legacy dialer options in Tailscale endpoint
-
-Legacy dialer options in Tailscale endpoints are deprecated,
-use control_http_client instead.
-
-`control_http_client`Old fields will be removed in sing-box 1.16.0.
 
 #### Inline ACME options in TLS
 
