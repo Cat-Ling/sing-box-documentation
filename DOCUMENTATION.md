@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-06-11 03:50:33 UTC
+> Generated on: 2026-06-13 03:36:33 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -26,6 +26,7 @@
 - [Headless Rule](#headless-rule)
 - [Source Format](#source-format)
 - [Service](#service)
+- [sing-box API](#sing-box-api)
 - [CCM](#ccm)
 - [DERP](#derp)
 - [Hysteria Realm](#hysteria-realm)
@@ -202,6 +203,54 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.30
+
+- Introducing sing-box API service 1
+- Apple/Android: Introducing remote control 2
+- Introducing sing-box Dashboard 3
+- Fixes and improvements
+
+1:
+
+The new sing-box API service is a gRPC
+server for observing and controlling the running sing-box instance,
+exposing the same interface the graphical clients use locally: service
+status, logs, outbound groups (selection and URL tests), Clash mode,
+connection tracking, and tools such as network quality tests, STUN
+tests, and Tailscale operations. The server also accepts
+gRPC-Web
+requests, including the WebSocket transport of
+@improbable-eng/grpc-web
+for bidirectional streaming methods, so browsers can connect directly.
+Clients authenticate via the
+secret field; TLS and CORS
+options are available. Connection tracking and Clash mode methods
+require the Clash API to be
+configured.
+
+`secret`2:
+
+The graphical clients for Apple platforms and Android can now control
+remote sing-box instances running the API service. Remote servers (URL
+and secret) are managed in settings; the dashboard, logs, connections,
+groups, and tools pages can then switch between the local service and
+remote instances.
+
+3:
+
+sing-box Dashboard is
+a new web client for the API service, providing almost the same
+experience as the graphical clients. A public instance is available at
+http://sing-box-dashboard.sagernet.org (shortcut: dash.sing-box.app).
+
+#### 1.14.0-alpha.29
+
+- Fixes and improvements
+
+#### 1.13.13
+
+- Fixes and improvements
 
 #### 1.14.0-alpha.27
 
@@ -7498,6 +7547,10 @@ The hostname of the node.
 
 System hostname is used by default.
 
+Since sing-box 1.14.0
+
+On iOS, tvOS and Android, the device name is used by default.
+
 Example: localhost
 
 `localhost`#### accept_routes
@@ -14072,6 +14125,7 @@ Since sing-box 1.12.0
 
 | Type | Format | 
 | --- | --- |
+| api | sing-box API | 
 | ccm | CCM | 
 | derp | DERP | 
 | hysteria-realm | Hysteria Realm | 
@@ -14079,11 +14133,73 @@ Since sing-box 1.12.0
 | resolved | Resolved | 
 | ssm-api | SSM API | 
 
-`ccm``derp``hysteria-realm``ocm``resolved``ssm-api`#### tag
+`api``ccm``derp``hysteria-realm``ocm``resolved``ssm-api`#### tag
 
 The tag of the endpoint.
 
 
+---
+
+## sing-box API
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/service/api/>
+
+Since sing-box 1.14.0
+
+# sing-box API
+
+The sing-box API service is a gRPC server for observing and controlling the running sing-box instance.
+
+The server also accepts gRPC-Web requests,
+including the WebSocket transport of @improbable-eng/grpc-web
+for bidirectional streaming methods.
+
+### Structure
+
+```
+{
+  "type": "api",
+
+  ... // Listen Fields
+
+  "secret": "",
+  "access_control_allow_origin": [],
+  "access_control_allow_private_network": false,
+  "tls": {}
+}
+
+```
+
+### Listen Fields
+
+See Listen Fields for details.
+
+### Fields
+
+#### secret
+
+Secret for the API.
+
+Clients authenticate with the standard authorization: Bearer <secret> gRPC metadata header.
+
+`authorization: Bearer <secret>`If empty, authentication is disabled.
+
+#### access_control_allow_origin
+
+CORS allowed origins, * will be used if empty.
+
+`*`#### access_control_allow_private_network
+
+Allow access from private network.
+
+#### tls
+
+TLS configuration, see TLS.
+
+Connection tracking and Clash mode methods require Clash API
+to be configured, otherwise they fail with UNIMPLEMENTED.
+
+`UNIMPLEMENTED`
 ---
 
 ## CCM
