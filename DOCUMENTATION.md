@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-06-13 03:36:33 UTC
+> Generated on: 2026-06-15 04:08:32 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -204,6 +204,10 @@ with this application without prior consent.
 
 # Change Log
 
+#### 1.14.0-alpha.31
+
+- Fixes and improvements
+
 #### 1.14.0-alpha.30
 
 - Introducing sing-box API service 1
@@ -218,18 +222,9 @@ server for observing and controlling the running sing-box instance,
 exposing the same interface the graphical clients use locally: service
 status, logs, outbound groups (selection and URL tests), Clash mode,
 connection tracking, and tools such as network quality tests, STUN
-tests, and Tailscale operations. The server also accepts
-gRPC-Web
-requests, including the WebSocket transport of
-@improbable-eng/grpc-web
-for bidirectional streaming methods, so browsers can connect directly.
-Clients authenticate via the
-secret field; TLS and CORS
-options are available. Connection tracking and Clash mode methods
-require the Clash API to be
-configured.
+tests, and Tailscale operations.
 
-`secret`2:
+2:
 
 The graphical clients for Apple platforms and Android can now control
 remote sing-box instances running the API service. Remote servers (URL
