@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-06-17 03:59:52 UTC
+> Generated on: 2026-06-19 04:10:02 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -33,6 +33,8 @@
 - [OCM](#ocm)
 - [Resolved](#resolved)
 - [SSM API](#ssm-api)
+- [USB/IP Client](#usb/ip-client)
+- [USB/IP Server](#usb/ip-server)
 
 ### Inbound
 
@@ -204,7 +206,33 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.31
+#### 1.14.0-alpha.32
+
+- Add dashboard support for the API service 1
+- Add USB/IP service 2
+- Fixes and improvements
+
+1:
+
+The sing-box API service can now download, update
+and serve sing-box-dashboard
+directly over its listener, configured via the new
+dashboard option.
+
+`dashboard`2:
+
+New USB/IP Server and
+USB/IP Client services export and import
+USB devices over the USB/IP protocol, built on
+sing-usbip, which adds hotplug while
+staying interoperable with standard USB/IP. Exporting config-selected local
+devices (provider: default) runs via the CLI on Linux, Windows, and macOS and
+requires elevated privileges (macOS additionally needs a CGO build and disabled
+System Integrity Protection). With provider: dynamic, devices are instead
+supplied at runtime through the API service by the graphical clients on macOS and
+Android, or the sing-box Dashboard.
+
+`provider: default``provider: dynamic`#### 1.14.0-alpha.31
 
 - Fixes and improvements
 
@@ -13361,7 +13389,7 @@ Fragment TLS handshake into multiple TLS records to bypass firewalls.
 
 Since sing-box 1.14.0
 
-Linux/macOS/Windows only, requires elevated privileges
+Only supported on Linux, macOS, and Windows, and requires elevated privileges.
 
 Inject a forged TLS ClientHello carrying this SNI before the real one,
 to fool SNI-filtering middleboxes that permit specific hostnames.
@@ -13633,9 +13661,18 @@ HTTP Client for downloading rule-set.
 
 See HTTP Client Fields for details.
 
-Default transport will be used if empty.
+When empty, the default HTTP client is used: the one named by
+default_http_client, or the first top-level
+http_clients entry when default_http_client is empty.
 
-#### update_interval
+`default_http_client``http_clients``default_http_client`Implicit default deprecated in sing-box 1.14.0
+
+When neither http_clients nor default_http_client is configured, an implicit HTTP
+client connecting through the default outbound is used. This implicit default is
+deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0; define
+http_clients instead.
+
+`http_clients``default_http_client``http_clients`#### update_interval
 
 Update interval of rule-set.
 
@@ -14127,8 +14164,10 @@ Since sing-box 1.12.0
 | ocm | OCM | 
 | resolved | Resolved | 
 | ssm-api | SSM API | 
+| usbip-server | USB/IP Server | 
+| usbip-client | USB/IP Client | 
 
-`api``ccm``derp``hysteria-realm``ocm``resolved``ssm-api`#### tag
+`api``ccm``derp``hysteria-realm``ocm``resolved``ssm-api``usbip-server``usbip-client`#### tag
 
 The tag of the endpoint.
 
@@ -14145,6 +14184,10 @@ Since sing-box 1.14.0
 
 The sing-box API service is a gRPC server for observing and controlling the running sing-box instance.
 
+It can be accessed by the sing-box graphical clients for iOS, macOS, and
+Android (via the Remote Control feature), or the
+sing-box dashboard.
+
 The server also accepts gRPC-Web requests,
 including the WebSocket transport of @improbable-eng/grpc-web
 for bidirectional streaming methods.
@@ -14160,6 +14203,13 @@ for bidirectional streaming methods.
   "secret": "",
   "access_control_allow_origin": [],
   "access_control_allow_private_network": false,
+  "dashboard": {
+    "enabled": true,
+    "path": "",
+    "download_url": "",
+    "http_client": "", // or {}
+    "update_interval": ""
+  },
   "tls": {}
 }
 
@@ -14187,14 +14237,62 @@ CORS allowed origins, * will be used if empty.
 
 Allow access from private network.
 
-#### tls
+#### dashboard
+
+Web dashboard downloaded and served over the API listener at /dashboard/; other browser
+requests are redirected to it.
+
+`/dashboard/`The object can be replaced with a boolean value (equivalent to { "enabled": <bool> }),
+or with a string path (equivalent to { "enabled": true, "path": "<string>" }).
+
+`{ "enabled": <bool> }``{ "enabled": true, "path": "<string>" }`##### enabled
+
+Enable the dashboard.
+
+##### path
+
+Directory the dashboard files are stored in.
+
+dashboard in the working directory will be used by default.
+
+`dashboard`If the directory is empty, the dashboard is downloaded and an .etag file is stored inside
+it to skip unchanged updates. A non-empty directory without an .etag file is served as-is
+and never updated automatically.
+
+`.etag``.etag`##### download_url
+
+Download URL of the dashboard archive (zip).
+
+https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip will be used by default.
+
+`https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip`##### http_client
+
+HTTP client used to download the dashboard, with the same behavior as remote rule-sets.
+
+See HTTP Client Fields for details.
+
+When empty, the default HTTP client is used: the one named by
+default_http_client, or the first top-level
+http_clients entry when default_http_client is empty.
+
+`default_http_client``http_clients``default_http_client`Implicit default deprecated in sing-box 1.14.0
+
+When neither http_clients nor default_http_client is configured, an implicit HTTP
+client connecting through the default outbound is used. This implicit default is
+deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0; define
+http_clients instead.
+
+`http_clients``default_http_client``http_clients`##### update_interval
+
+Update interval of the dashboard.
+
+1d will be used by default.
+
+`1d`#### tls
 
 TLS configuration, see TLS.
 
-Connection tracking and Clash mode methods require Clash API
-to be configured, otherwise they fail with UNIMPLEMENTED.
 
-`UNIMPLEMENTED`
 ---
 
 ## CCM
@@ -14865,6 +14963,177 @@ to be restored on the next startup.
 #### tls
 
 TLS configuration, see TLS.
+
+
+---
+
+## USB/IP Client
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/service/usbip-client/>
+
+Since sing-box 1.14.0
+
+# USB/IP Client
+
+USB/IP Client service imports remote USB devices over USB/IP,
+exported by the USB/IP Server.
+
+Available on Linux, Windows, and macOS (macOS requires a build with CGO). Not available on iOS.
+
+The server must be a sing-box (or sing-usbip) server.
+
+### Structure
+
+```
+{
+  "type": "usbip-client",
+
+  ... // Dial Fields
+
+  "server": "",
+  "server_port": 0,
+  "devices": []
+}
+
+```
+
+Difference from the official USB/IP protocol
+
+sing-box uses sing-usbip, which uses an additional
+set of protocols to support enhancements such as hotplug, while remaining interoperable with
+the standard USB/IP protocol.
+
+### Dial Fields
+
+See Dial Fields for details.
+
+Only detour takes effect.
+
+`detour`### Fields
+
+#### server
+
+Required
+
+The remote usbip-server address.
+
+`usbip-server`#### server_port
+
+The remote usbip-server port. Defaults to 3240.
+
+`usbip-server``3240`#### devices
+
+List of device matches selecting which remote devices to import. If empty, all exported devices
+are imported.
+
+Object format:
+
+```
+{
+  "bus_id": "",
+  "vendor_id": 0,
+  "product_id": 0,
+  "serial": ""
+}
+
+```
+
+Object fields:
+
+- bus_id: USB bus ID, e.g. 1-2.
+- vendor_id: USB vendor ID, as a number.
+- product_id: USB product ID, as a number.
+- serial: Device serial number.
+
+`bus_id``1-2``vendor_id``product_id``serial`Within one object, all specified fields must match; multiple objects are combined as a union. At
+least one field is required.
+
+
+---
+
+## USB/IP Server
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/service/usbip-server/>
+
+Since sing-box 1.14.0
+
+# USB/IP Server
+
+USB/IP Server service exports local USB devices over USB/IP,
+to be imported by the USB/IP Client or a standard USB/IP
+client.
+
+Available on Linux, Windows, and macOS (macOS requires a build with CGO, and exporting devices
+requires disabling System Integrity Protection). Not available on iOS.
+
+### Structure
+
+```
+{
+  "type": "usbip-server",
+
+  ... // Listen Fields
+
+  "provider": "",
+  "devices": []
+}
+
+```
+
+Difference from the official USB/IP protocol
+
+sing-box uses sing-usbip, which uses an additional
+set of protocols to support enhancements such as hotplug, while remaining interoperable with
+the standard USB/IP protocol.
+
+### Listen Fields
+
+See Listen Fields for details.
+
+listen_port defaults to 3240.
+
+`listen_port``3240`### Fields
+
+#### provider
+
+The device source provider.
+
+- default: Exports the local devices matched by devices. The default value.
+- dynamic: Devices are provided at runtime through a sing-box API
+  client instead of from configuration, on supported platforms: the sing-box graphical clients on
+  macOS and Android, and Chromium-based browsers with
+  sing-box Dashboard.
+
+`default``devices``dynamic`The default provider is only supported when running directly via the CLI on Linux, Windows,
+and macOS, and requires elevated privileges.
+
+`default`#### devices
+
+Required with the default provider.
+
+`default`List of device matches selecting which local USB devices to export.
+
+Object format:
+
+```
+{
+  "bus_id": "",
+  "vendor_id": 0,
+  "product_id": 0,
+  "serial": ""
+}
+
+```
+
+Object fields:
+
+- bus_id: USB bus ID, e.g. 1-2.
+- vendor_id: USB vendor ID, as a number.
+- product_id: USB product ID, as a number.
+- serial: Device serial number.
+
+`bus_id``1-2``vendor_id``product_id``serial`Within one object, all specified fields must match; multiple objects are combined as a union. At
+least one field is required.
 
 
 ---
@@ -16891,7 +17160,9 @@ Fragment TLS handshake into multiple TLS records to bypass firewalls.
 
 Since sing-box 1.14.0
 
-Client only, Linux/macOS/Windows only, requires elevated privileges
+Client only
+
+Only supported on Linux, macOS, and Windows, and requires elevated privileges.
 
 Inject a forged TLS ClientHello carrying a whitelisted SNI before the real one,
 to fool SNI-filtering middleboxes that permit specific hostnames.
