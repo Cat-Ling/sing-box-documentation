@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-06-21 04:04:54 UTC
+> Generated on: 2026-06-23 03:26:44 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -206,7 +206,22 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.32
+#### 1.14.0-alpha.33
+
+- Add iOS jailbreak release 1
+- Fixes and improvements
+
+1:
+
+A new jailbreak build of the iOS sing-box for Apple client is
+available, distributed as a .deb for rootless iOS 15.0+ from
+GitHub Releases
+(SFI-iphoneos-arm64.deb). Unlike the App Store and TestFlight builds, it can run
+a Tailscale SSH server on the
+device and supports process matching
+(process_name, process_path, user, and so on) in route and DNS rules.
+
+`.deb``SFI-iphoneos-arm64.deb``process_name``process_path``user`#### 1.14.0-alpha.32
 
 - Add dashboard support for the API service 1
 - Add USB/IP service 2
@@ -4848,7 +4863,7 @@ characteristics through dex class path and other means, there will be almost no 
 SFI/SFM/SFT allows users to manage and run local or remote sing-box configuration files, and provides
 platform-specific function implementation, such as TUN transparent proxy implementation.
 
-Due to non-technical reasons, we are temporarily unable to update the sing-box app on the App Store and release the standalone version of the macOS client (TestFlight users are not affected)
+We are temporarily unable to update sing-box apps on the App Store because the reviewer mistakenly found that we violated the rules (TestFlight users are not affected).
 
 ##  Requirements
 
@@ -4865,7 +4880,18 @@ TestFlight quota is only available to sponsors
 Once you donate, you can get an invitation by join our Telegram group for sponsors from @yet_another_sponsor_bot
 or sending us your Apple ID via email.
 
-##  Download (macOS standalone version)
+##  Download (iOS jailbreak version)
+
+- GitHub Releases (SFI-iphoneos-arm64.deb)
+
+`SFI-iphoneos-arm64.deb`The jailbroken version of SFI: requires rootless iOS 15.0+
+
+Additional features:
+
+- It can run a Tailscale SSH server on the device.
+- Process matching (process_name, process_path, user, and so on) works in route and DNS rules.
+
+`process_name``process_path``user`##  Download (macOS standalone version)
 
 - Homebrew Cask
 
@@ -4929,13 +4955,13 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 
 `interface_name``inet4_address``inet6_address``mtu``gso``auto_route``strict_route``inet4_route_address``inet6_route_address``inet4_route_exclude_address``inet6_route_exclude_address``endpoint_independent_nat``stack``include_interface``exclude_interface``include_uid``exclude_uid``include_android_user``include_package``exclude_package``platform`| Route/DNS rule option | Available | Note | 
 | --- | --- | --- |
-| process_name |  | No permission | 
-| process_path |  | No permission | 
-| process_path_regex |  | No permission | 
+| process_name |  | Only supported in the macOS standalone and iOS jailbreak versions | 
+| process_path |  | Only supported in the macOS standalone and iOS jailbreak versions | 
+| process_path_regex |  | Only supported in the macOS standalone and iOS jailbreak versions | 
 | package_name |  | / | 
 | package_name_regex |  | / | 
-| user |  | No permission | 
-| user_id |  | No permission | 
+| user |  | Only supported in the macOS standalone and iOS jailbreak versions | 
+| user_id |  | Only supported in the macOS standalone and iOS jailbreak versions | 
 | wifi_ssid |  | Only supported on iOS | 
 | wifi_bssid |  | Only supported on iOS | 
 
@@ -7658,7 +7684,8 @@ Access is controlled by the SSH ACL in the Tailscale admin console, which maps e
 - Windows: sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused.
 - Android: the user is resolved by the app rather than the system user database. root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory, so the target application must be installed. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access; without root, sessions are limited to the sing-box user.
 - macOS: the SSH server is only available in the standalone version and requires the Root Helper; the App Store version is not supported.
-- iOS and tvOS: not yet supported.
+- iOS: the SSH server is only available in the jailbreak build; the App Store and TestFlight versions are not supported.
+- tvOS: not yet supported.
 
 `root``shell``termux``com.termux``sing-box``root``termux`Object format:
 
