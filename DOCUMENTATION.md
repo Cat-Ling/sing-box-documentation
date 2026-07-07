@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-05 02:56:49 UTC
+> Generated on: 2026-07-07 02:56:41 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -50,6 +50,7 @@
 - [Redirect](#redirect)
 - [Shadowsocks](#shadowsocks)
 - [ShadowTLS](#shadowtls)
+- [Snell](#snell)
 - [SOCKS](#socks)
 - [TProxy](#tproxy)
 - [Trojan](#trojan)
@@ -72,6 +73,7 @@
 - [Selector](#selector)
 - [Shadowsocks](#shadowsocks)
 - [ShadowTLS](#shadowtls)
+- [Snell](#snell)
 - [SOCKS](#socks)
 - [SSH](#ssh)
 - [Tor](#tor)
@@ -205,6 +207,44 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.39
+
+- Add L3 forwarding support 1
+- Fixes and improvements
+
+1:
+
+Building on the ICMP proxy support introduced in sing-box 1.13.0, TCP and UDP
+traffic from L3 inbounds (TUN, WireGuard, and Tailscale) can now be forwarded
+directly to WireGuard and Tailscale endpoints at L3, without going through
+L3 to L4 translation.
+
+See Pre-match.
+
+#### 1.14.0-alpha.38
+
+- Add Snell protocol support 1
+- Fixes and improvements
+
+1:
+
+Surge believes that being closed-source and not proliferated can keep
+Snell
+covert, but this is already impossible in 2026; considering that Snell still
+has advantages that other random-traffic protocols do not possess, such as
+multiplexing support with complete TCP semantics and traffic-characteristic
+diversity, we implemented it in Go
+instead of reinventing the wheel, with all features except the v5 QUIC proxy,
+behavior as consistent with the official implementation as possible, and
+performance at least on par with it.
+
+See Snell Inbound and
+Snell Outbound.
+
+#### 1.13.14
+
+- Fixes and improvements
 
 #### 1.14.0-alpha.33
 
@@ -8249,12 +8289,13 @@ User list to count traffic.
 | hysteria2 | Hysteria2 |  | 
 | vless | VLESS | TCP | 
 | anytls | AnyTLS | TCP | 
+| snell | Snell | TCP | 
 | tun | Tun |  | 
 | redirect | Redirect |  | 
 | tproxy | TProxy |  | 
 | cloudflared | Cloudflared |  | 
 
-`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``tun``redirect``tproxy``cloudflared`#### tag
+`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``snell``tun``redirect``tproxy``cloudflared`#### tag
 
 The tag of the inbound.
 
@@ -9283,6 +9324,110 @@ Available values are:
 `handshake_for_server_name`Only available in the ShadowTLS protocol 3.
 
 
+---
+
+## Snell
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/inbound/snell/>
+
+# Snell
+
+Since sing-box 1.14.0
+
+### Structure
+
+```
+{
+  "type": "snell",
+  "tag": "snell-in",
+
+  ... // Listen Fields
+
+  "version": 5,
+  "psk": "password",
+  "users": [
+    {
+      "name": "sekai",
+      "userkey": "user-password"
+    }
+  ],
+  "obfs_mode": ""
+}
+
+```
+
+### Version 6 Structure
+
+```
+{
+  "type": "snell",
+  "tag": "snell-in",
+
+  ... // Listen Fields
+
+  "version": 6,
+  "psk": "password",
+  "users": [
+    {
+      "name": "sekai",
+      "userkey": "user-password"
+    }
+  ],
+  "mode": ""
+}
+
+```
+
+### Listen Fields
+
+See Listen Fields for details.
+
+### Fields
+
+#### version
+
+Required
+
+The Snell protocol version, one of 5 6.
+
+`5``6`Version 5 supports HTTP obfuscation (obfs_mode); version 6 replaces it
+with traffic shaping (mode) and requires a psk of 12 to 255 bytes.
+
+`5``obfs_mode``6``mode``psk`Note
+
+Since we intentionally do not support the QUIC proxy mode of Snell v5, the v5 wire protocol
+is effectively identical to v4, so no separate v4 server or v5 client is provided.
+
+#### psk
+
+Required
+
+The pre-shared key.
+
+#### users
+
+Snell users.
+
+When set, the server runs in multi-user mode: each entry has a name (optional, used in
+logs) and a userkey (the user's key). The top-level psk remains the server key.
+
+`name``userkey``psk`#### obfs_mode
+
+Version 5 only
+
+HTTP obfuscation mode, one of none http.
+
+`none``http`none is used by default.
+
+`none`#### mode
+
+Version 6 only
+
+Traffic shaping mode, one of default unshaped unsafe-raw.
+
+`default``unshaped``unsafe-raw`default is used by default.
+
+`default`
 ---
 
 ## SOCKS
@@ -10461,6 +10606,7 @@ See Dial Fields for details.
 | tuic | TUIC | 
 | hysteria2 | Hysteria2 | 
 | anytls | AnyTLS | 
+| snell | Snell | 
 | tor | Tor | 
 | ssh | SSH | 
 | dns | DNS | 
@@ -10468,7 +10614,7 @@ See Dial Fields for details.
 | urltest | URLTest | 
 | naive | NaiveProxy | 
 
-`direct``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``tor``ssh``dns``selector``urltest``naive`#### tag
+`direct``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``snell``tor``ssh``dns``selector``urltest``naive`#### tag
 
 The tag of the outbound.
 
@@ -11468,6 +11614,139 @@ Required
 TLS configuration, see TLS.
 
 ### Dial Fields
+
+See Dial Fields for details.
+
+
+---
+
+## Snell
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/outbound/snell/>
+
+# Snell
+
+Since sing-box 1.14.0
+
+### Structure
+
+```
+{
+  "type": "snell",
+  "tag": "snell-out",
+
+  "server": "127.0.0.1",
+  "server_port": 1080,
+  "version": 4,
+  "psk": "password",
+  "userkey": "",
+  "reuse": false,
+  "network": "tcp",
+  "obfs_mode": "",
+  "obfs_host": "",
+
+  ... // Dial Fields
+}
+
+```
+
+### Version 6 Structure
+
+```
+{
+  "type": "snell",
+  "tag": "snell-out",
+
+  "server": "127.0.0.1",
+  "server_port": 1080,
+  "version": 6,
+  "psk": "password",
+  "userkey": "",
+  "reuse": false,
+  "network": "tcp",
+  "mode": "",
+
+  ... // Dial Fields
+}
+
+```
+
+### Fields
+
+#### server
+
+Required
+
+The server address.
+
+#### server_port
+
+Required
+
+The server port.
+
+#### version
+
+Required
+
+The Snell protocol version, one of 4 6.
+
+`4``6`Version 4 supports HTTP obfuscation (obfs_mode / obfs_host); version 6
+replaces it with traffic shaping (mode) and requires a psk of 12 to 255
+bytes.
+
+`4``obfs_mode``obfs_host``6``mode``psk`Note
+
+Since we intentionally do not support the QUIC proxy mode of Snell v5, the v5 wire protocol
+is effectively identical to v4, so no separate v4 server or v5 client is provided.
+
+#### psk
+
+Required
+
+The pre-shared key.
+
+#### userkey
+
+The user key, used to authenticate against a multi-user server.
+
+#### reuse
+
+Enable connection reuse (the Snell v2 CONNECT command).
+
+`CONNECT`#### network
+
+Enabled network
+
+One of tcp udp.
+
+`tcp``udp`Both is enabled by default.
+
+#### obfs_mode
+
+Version 4 only
+
+HTTP obfuscation mode, one of none http.
+
+`none``http`none is used by default.
+
+`none`#### obfs_host
+
+Version 4 only
+
+The HTTP Host header sent when obfs_mode is http.
+
+`Host``obfs_mode``http`bing.com is used by default.
+
+`bing.com`#### mode
+
+Version 6 only
+
+Traffic shaping mode, one of default unshaped unsafe-raw.
+
+`default``unshaped``unsafe-raw`default is used by default.
+
+`default`### Dial Fields
 
 See Dial Fields for details.
 
@@ -16406,6 +16685,10 @@ See VPN Hotspot for Internet Sharing setup.
 
 # Pre-match
 
+Changes in sing-box 1.14.0
+
+route
+
 Changes in sing-box 1.13.0
 
 bypass
@@ -16414,7 +16697,7 @@ Pre-match is rule matching that runs before the connection is established.
 
 ### How it works
 
-When TUN receives a connection request, the connection has not yet been established,
+When an L3 inbound (TUN, WireGuard, or Tailscale) receives a connection request, the connection has not yet been established,
 so no connection data can be read. In this phase, sing-box runs the routing rules in pre-match mode.
 
 Since connection data is unavailable, only actions that do not require connection data can be executed.
@@ -16430,9 +16713,26 @@ See reject for details.
 
 #### route
 
-Route ICMP connections to the specified outbound for direct reply.
+Changes in sing-box 1.14.0
 
-See route for details.
+Since sing-box 1.14.0, TCP and UDP connections can also be forwarded at L3;
+previously only ICMP connections were supported.
+
+Forward connections directly at L3 to the specified outbound,
+without going through L3 to L4 translation.
+
+Supported targets:
+
+- ICMP connections: Direct outbounds and WireGuard / Tailscale endpoints.
+- TCP and UDP connections: WireGuard and Tailscale endpoints.
+
+L3 forwarding also applies when no rule matches and the default outbound is a supported
+target; for outbound groups, the currently selected outbound is used.
+
+FakeIP destinations require a resolve action performed in pre-match,
+otherwise connections will be rejected.
+
+`resolve`See route for details.
 
 #### bypass
 
