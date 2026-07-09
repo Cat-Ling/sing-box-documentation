@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-07 02:56:41 UTC
+> Generated on: 2026-07-09 02:51:10 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -64,6 +64,7 @@
 - [Outbound](#outbound)
 - [AnyTLS](#anytls)
 - [Block](#block)
+- [Bridge](#bridge)
 - [Direct](#direct)
 - [DNS](#dns)
 - [HTTP](#http)
@@ -207,6 +208,20 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.40
+
+- Add bridge outbound 1
+- Fixes and improvements
+
+1:
+
+The new bridge outbound is the L3 counterpart of direct: it forwards L3
+traffic (TCP, UDP and ICMP) from a TUN or other L3 endpoints directly out of a
+network interface, without going through L3 to L4 translation. It requires
+privileges and is supported on Linux, macOS, rooted Android, and jailbroken iOS.
+
+`bridge``direct`See Bridge.
 
 #### 1.14.0-alpha.39
 
@@ -10593,6 +10608,7 @@ See Dial Fields for details.
 | Type | Format | 
 | --- | --- |
 | direct | Direct | 
+| bridge | Bridge | 
 | block | Block | 
 | socks | SOCKS | 
 | http | HTTP | 
@@ -10614,7 +10630,7 @@ See Dial Fields for details.
 | urltest | URLTest | 
 | naive | NaiveProxy | 
 
-`direct``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``snell``tor``ssh``dns``selector``urltest``naive`#### tag
+`direct``bridge``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``snell``tor``ssh``dns``selector``urltest``naive`#### tag
 
 The tag of the outbound.
 
@@ -10721,6 +10737,74 @@ See Dial Fields for details.
 No fields.
 
 
+---
+
+## Bridge
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/outbound/bridge/>
+
+Since sing-box 1.14.0
+
+# Bridge
+
+Requires privileges. Supported on Linux, macOS, rooted Android, and jailbroken iOS.
+
+For graphical clients: on macOS, only available in the standalone version and requires the
+Root Helper; on Android, requires root permission; on iOS, requires jailbreak.
+
+bridge is the L3 counterpart of the direct outbound: it forwards L3 connections
+(TCP, UDP and ICMP) directly out of a network interface. Route L3 traffic to it from a TUN
+or other L3 endpoints via the route action in
+Pre-match; L4 connections will be rejected.
+
+`bridge``direct``route`### Structure
+
+```
+{
+  "type": "bridge",
+  "tag": "bridge-out",
+
+  "interface": "",
+  "bridge_name": "",
+  "iproute2_table_index": 0,
+  "iproute2_rule_index": 0
+}
+
+```
+
+### Fields
+
+#### interface
+
+Interface name for forwarded traffic to egress.
+
+The default interface will be used by default.
+
+Forwarded traffic will be dropped while the interface is unavailable.
+
+#### bridge_name
+
+Custom bridge TUN interface name prefix, bridge is used by default.
+
+`bridge`Not effective on Apple platforms.
+
+#### iproute2_table_index
+
+Only supported on Linux, and only takes effect when interface is set.
+
+`interface`Linux iproute2 table index for pinned egress routes.
+
+2200 + instance index is used by default.
+
+`2200`#### iproute2_rule_index
+
+Only supported on Linux.
+
+Linux iproute2 rule start index.
+
+100 is used by default.
+
+`100`
 ---
 
 ## Direct
@@ -16688,6 +16772,7 @@ See VPN Hotspot for Internet Sharing setup.
 Changes in sing-box 1.14.0
 
 route
+ sniff
 
 Changes in sing-box 1.13.0
 
@@ -16697,11 +16782,11 @@ Pre-match is rule matching that runs before the connection is established.
 
 ### How it works
 
-When an L3 inbound (TUN, WireGuard, or Tailscale) receives a connection request, the connection has not yet been established,
-so no connection data can be read. In this phase, sing-box runs the routing rules in pre-match mode.
+When an L3 inbound (TUN, WireGuard, or Tailscale) receives a connection request, the connection has not yet been established:
+for TCP connections no connection data is available, while for UDP connections only the first packet is available.
+In this phase, sing-box runs the routing rules in pre-match mode.
 
-Since connection data is unavailable, only actions that do not require connection data can be executed.
-When a rule matches an action that requires an established connection, pre-match stops at that rule.
+When a rule matches an action that requires more connection data than available, pre-match stops at that rule.
 
 ### Supported actions
 
@@ -16723,8 +16808,8 @@ without going through L3 to L4 translation.
 
 Supported targets:
 
-- ICMP connections: Direct outbounds and WireGuard / Tailscale endpoints.
-- TCP and UDP connections: WireGuard and Tailscale endpoints.
+- ICMP connections: Direct and Bridge outbounds, and WireGuard / Tailscale endpoints.
+- TCP and UDP connections: Bridge outbounds, and WireGuard / Tailscale endpoints.
 
 L3 forwarding also applies when no rule matches and the default outbound is a supported
 target; for outbound groups, the currently selected outbound is used.
@@ -16733,6 +16818,19 @@ FakeIP destinations require a resolve action performed in pre-match,
 otherwise connections will be rejected.
 
 `resolve`See route for details.
+
+#### sniff
+
+Since sing-box 1.14.0
+
+For UDP connections, the first packet is available in pre-match,
+so protocol sniffing runs on it directly and rule matching continues with the sniffed metadata.
+
+When sniffers require more data (like a fragmented QUIC Client Hello), pre-match stops at that rule.
+
+For TCP connections, pre-match always stops at that rule.
+
+See sniff for details.
 
 #### bypass
 
