@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-09 02:51:10 UTC
+> Generated on: 2026-07-11 02:31:49 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -20,6 +20,9 @@
 - [Clash API](#clash-api)
 - [V2Ray API](#v2ray-api)
 - [Log](#log)
+- [Network Namespace](#network-namespace)
+- [Default](#default)
+- [Unshare](#unshare)
 - [NTP](#ntp)
 - [rule-set](#rule-set)
 - [AdGuard DNS Filer](#adguard-dns-filer)
@@ -209,7 +212,63 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.40
+#### 1.14.0-alpha.43
+
+- Add network namespace support 1
+- Fixes and improvements
+
+1:
+
+The new network_namespaces option defines
+Linux network namespaces for inbounds and outbounds, referenced by tag from the
+new tun netns field and the existing
+Listen and
+Dial netns fields.
+
+`network_namespaces``netns``netns`The unshare type creates the
+namespace at startup without requiring root privileges: a rootless sing-box can
+provide a tun (including auto_route and auto_redirect) inside a namespace,
+which can be entered with nsenter.
+
+`unshare``auto_route``auto_redirect``nsenter`#### 1.14.0-alpha.42
+
+- Fixes and improvements
+
+#### 1.14.0-alpha.41
+
+- Add windows bridge 1
+- Add preferred_by support for bridge 2
+- Add hysteria2 realm IP version restriction 3
+- Add hysteria2 realm port mapping 4
+- Fixes and improvements
+
+`preferred_by`1:
+
+The bridge outbound is now supported on
+Windows, implemented via WinDivert and requiring Administrator privileges.
+
+`bridge`2:
+
+The bridge outbound now works with the
+preferred_by route rule item.
+It is recommended to use preferred_by as a gate in the route rule: it only
+matches in pre-match and excludes local
+addresses that cannot be routed.
+
+`bridge``preferred_by``preferred_by``route`3:
+
+The new realm.ip_version
+inbound and outbound field restricts realm connections (STUN, hole punching,
+and the resulting QUIC path) to a single IP version.
+
+`realm.ip_version`4:
+
+The new realm.port_mapping
+inbound and outbound field maintains a UDP port mapping on the local gateway
+via UPnP or NAT-PMP, improving hole-punching reliability behind gateways that
+support it.
+
+`realm.port_mapping`#### 1.14.0-alpha.40
 
 - Add bridge outbound 1
 - Fixes and improvements
@@ -5135,6 +5194,7 @@ sing-box uses JSON for configuration files.
   "certificate": {},
   "certificate_providers": [],
   "http_clients": [],
+  "network_namespaces": [],
   "endpoints": [],
   "inbounds": [],
   "outbounds": [],
@@ -5155,6 +5215,7 @@ sing-box uses JSON for configuration files.
 | certificate | Certificate | 
 | certificate_providers | Certificate Provider | 
 | http_clients | HTTP Client | 
+| network_namespaces | Network Namespace | 
 | endpoints | Endpoint | 
 | inbounds | Inbound | 
 | outbounds | Outbound | 
@@ -5162,7 +5223,7 @@ sing-box uses JSON for configuration files.
 | services | Service | 
 | experimental | Experimental | 
 
-`log``dns``ntp``certificate``certificate_providers``http_clients``endpoints``inbounds``outbounds``route``services``experimental`### Check
+`log``dns``ntp``certificate``certificate_providers``http_clients``network_namespaces``endpoints``inbounds``outbounds``route``services``experimental`### Check
 
 ```
 sing-box check
@@ -8767,6 +8828,12 @@ masquerade
     "realm_id": "",
     "stun_servers": [],
     "stun_domain_resolver": "", // or {}
+    "ip_version": 0,
+    "port_mapping": {
+      "enabled": false,
+      "timeout": "",
+      "lifetime": ""
+    },
     "http_client": {}
   }
 }
@@ -8957,7 +9024,39 @@ This option uses the same format as the route DNS rule action without the action
 
 `server`If empty, the default domain resolver is used.
 
-#### realm.http_client
+#### realm.ip_version
+
+Restrict realm connections (STUN, hole punching, and the resulting QUIC path) to a single IP version.
+
+4 or 6. Both are used if empty.
+
+`4``6`The listen address must be compatible with the selected version.
+
+`listen`#### realm.port_mapping
+
+Maintain a UDP port mapping on the local gateway via UPnP or NAT-PMP.
+
+The mapping is established before STUN discovery and improves hole-punching reliability behind gateways that support it; failures are non-fatal.
+
+Requires IPv4: conflicts with "ip_version": 6.
+
+`"ip_version": 6`#### realm.port_mapping.enabled
+
+Enable port mapping.
+
+#### realm.port_mapping.timeout
+
+Timeout for gateway discovery and mapping operations.
+
+10s is used by default.
+
+`10s`#### realm.port_mapping.lifetime
+
+Lease lifetime of the mapping; it is renewed at half the lifetime.
+
+10m is used by default.
+
+`10m`#### realm.http_client
 
 HTTP client used to talk to the realm.
 
@@ -9707,6 +9806,7 @@ include_mac_address
  exclude_mac_address
  dns_mode
  dns_address
+ netns
 
 Changes in sing-box 1.13.3
 
@@ -9891,7 +9991,21 @@ If tun is running in non-privileged mode, addresses and MTU will not be configur
 
 Virtual device name, automatically selected if empty.
 
-#### address
+#### netns
+
+Since sing-box 1.14.0
+
+Only supported on Linux.
+
+Create the tun interface in the specified network namespace, name, path, or the tag of a
+network namespace.
+
+When set, auto_route and auto_redirect operate inside the namespace, and no root privilege is
+required if the namespace is owned by the current user.
+
+`auto_route``auto_redirect`Conflict with platform.
+
+`platform`#### address
 
 Since sing-box 1.10.0
 
@@ -10525,6 +10639,127 @@ Add time to each line.
 
 ---
 
+## Network Namespace
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/network-namespace/>
+
+Since sing-box 1.14.0
+
+Only supported on Linux.
+
+# Network Namespace
+
+Network namespaces let inbounds and outbounds run inside a separate Linux network namespace,
+referenced by tag from the tun,
+Listen Fields and Dial Fields.
+
+### Structure
+
+```
+{
+  "network_namespaces": [
+    {
+      "type": "",
+      "tag": ""
+    }
+  ]
+}
+
+```
+
+#### type
+
+The type of the network namespace, default is used by default.
+
+`default`| Type | Format | 
+| --- | --- |
+| default | Default | 
+| unshare | Unshare | 
+
+`default``unshare`#### tag
+
+Required
+
+The tag of the network namespace.
+
+
+---
+
+## Default
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/network-namespace/default/>
+
+Since sing-box 1.14.0
+
+# Default
+
+Attach to an existing network namespace.
+
+### Structure
+
+```
+{
+  "network_namespaces": [
+    {
+      "type": "default", // optional
+      "tag": "",
+      "path": ""
+    }
+  ]
+}
+
+```
+
+### Fields
+
+#### path
+
+Required
+
+Name or path of the network namespace, for example sing or /run/netns/sing.
+
+`sing``/run/netns/sing`
+---
+
+## Unshare
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/network-namespace/unshare/>
+
+Since sing-box 1.14.0
+
+# Unshare
+
+Create a new network namespace, without root privilege.
+
+Rootless operation requires the kernel to allow unprivileged user namespace creation.
+
+### Structure
+
+```
+{
+  "network_namespaces": [
+    {
+      "type": "unshare",
+      "tag": "",
+      "pid_file": ""
+    }
+  ]
+}
+
+```
+
+### Fields
+
+#### pid_file
+
+If set, the PID of the process holding the namespace open is written to this path.
+
+The namespace can be entered with nsenter -t <pid> -n when sing-box is run as root,
+or nsenter -t <pid> -U --preserve-credentials -n otherwise.
+
+`nsenter -t <pid> -n``nsenter -t <pid> -U --preserve-credentials -n`
+---
+
 ## NTP
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/ntp/>
@@ -10747,7 +10982,7 @@ Since sing-box 1.14.0
 
 # Bridge
 
-Requires privileges. Supported on Linux, macOS, rooted Android, and jailbroken iOS.
+Requires privileges. Supported on Linux, macOS, Windows, rooted Android, and jailbroken iOS.
 
 For graphical clients: on macOS, only available in the standalone version and requires the
 Root Helper; on Android, requires root permission; on iOS, requires jailbreak.
@@ -10757,7 +10992,15 @@ bridge is the L3 counterpart of the direct outbound: it forwards L3 connections
 or other L3 endpoints via the route action in
 Pre-match; L4 connections will be rejected.
 
-`bridge``direct``route`### Structure
+`bridge``direct``route`Traffic to local addresses of the machine (loopback, or addresses assigned to its
+network interfaces) will be rejected.
+
+It is recommended to use preferred_by
+as a gate in the route rule: it only matches in
+pre-match and excludes local addresses that
+cannot be routed.
+
+`preferred_by``route`### Structure
 
 ```
 {
@@ -11175,6 +11418,12 @@ server_ports
     "token": "",
     "realm_id": "",
     "stun_servers": [],
+    "ip_version": 0,
+    "port_mapping": {
+      "enabled": false,
+      "timeout": "",
+      "lifetime": ""
+    },
     "http_client": {}
   },
 
@@ -11341,7 +11590,37 @@ List of STUN servers (host or host:port) used to discover this client's public a
 
 `host``host:port`Domain names are resolved using domain_resolver from Dial Fields.
 
-`domain_resolver`#### realm.http_client
+`domain_resolver`#### realm.ip_version
+
+Restrict realm connections (STUN, hole punching, and the resulting QUIC path) to a single IP version.
+
+4 or 6. Both are used if empty.
+
+`4``6`#### realm.port_mapping
+
+Maintain a UDP port mapping on the local gateway via UPnP or NAT-PMP.
+
+The mapping is established before STUN discovery and improves hole-punching reliability behind gateways that support it; failures are non-fatal.
+
+Requires IPv4: conflicts with "ip_version": 6.
+
+`"ip_version": 6`#### realm.port_mapping.enabled
+
+Enable port mapping.
+
+#### realm.port_mapping.timeout
+
+Timeout for gateway discovery and mapping operations.
+
+10s is used by default.
+
+`10s`#### realm.port_mapping.lifetime
+
+Lease lifetime of the mapping; it is renewed at half the lifetime.
+
+10m is used by default.
+
+`10m`#### realm.http_client
 
 HTTP client used to talk to the realm.
 
@@ -13442,8 +13721,9 @@ Match specified outbounds' preferred routes.
 | --- | --- |
 | tailscale | Match MagicDNS domains and peers' allowed IPs | 
 | wireguard | Match peers's allowed IPs | 
+| bridge | Match all addresses except local addresses of the machine, only in pre-match | 
 
-`tailscale``wireguard`#### source_mac_address
+`tailscale``wireguard``bridge`#### source_mac_address
 
 Since sing-box 1.14.0
 
@@ -15856,6 +16136,7 @@ MagicDNS and HTTPS must be enabled in the Tailscale admin console.
 Changes in sing-box 1.14.0
 
 domain_resolver
+ netns
 
 Changes in sing-box 1.13.0
 
@@ -15962,7 +16243,10 @@ Only supported on Linux.
 
 Set network namespace, name or path.
 
-#### connect_timeout
+Since sing-box 1.14.0, the tag of a network namespace can also be used.
+Referencing an unshare network namespace should be avoided, since its only route out is the tun interface managed by sing-box itself.
+
+`unshare`#### connect_timeout
 
 Connect timeout, in golang's Duration format.
 
@@ -16416,6 +16700,10 @@ Maximum concurrent streams per connection.
 
 # Listen Fields
 
+Changes in sing-box 1.14.0
+
+netns
+
 Changes in sing-box 1.13.0
 
 disable_tcp_keep_alive
@@ -16507,6 +16795,8 @@ Since sing-box 1.12.0
 Only supported on Linux.
 
 Set network namespace, name or path.
+
+Since sing-box 1.14.0, the tag of a network namespace can also be used.
 
 #### tcp_fast_open
 
