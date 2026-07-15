@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-13 02:53:25 UTC
+> Generated on: 2026-07-15 02:15:41 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -158,6 +158,8 @@
 - [Features](#features)
 - [sing-box for Apple platforms](#sing-box-for-apple-platforms)
 - [Features](#features)
+- [sing-box for Desktop](#sing-box-for-desktop)
+- [Features](#features)
 - [General](#general)
 - [Privacy policy](#privacy-policy)
 - [Deprecated Feature List](#deprecated-feature-list)
@@ -212,7 +214,20 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.43
+#### 1.14.0-alpha.44
+
+- Introducing our new Windows client application 1
+- Fixes and improvements
+
+1:
+
+The new Windows client provides an experience equal to
+other standard sing-box graphical clients, is available for Windows 10+
+(x64 / x86 / arm64), and is distributed as an installer from
+GitHub Releases
+(SFW-<version>-<architecture>.exe).
+
+`SFW-<version>-<architecture>.exe`#### 1.14.0-alpha.43
 
 - Add network namespace support 1
 - Fixes and improvements
@@ -4857,7 +4872,8 @@ Maintained by Project S to provide a unified experience and platform-specific fu
 | --- | --- |
 |  Android | sing-box for Android | 
 |  iOS/macOS/Apple tvOS | sing-box for Apple platforms | 
-|  Desktop | Working in progress | 
+|  Windows | sing-box for Desktop | 
+|  Linux | Working in progress | 
 
 Some third-party projects that claim to use sing-box or use sing-box as a selling point are not listed here. The core
 motivation of the maintainers of such projects is to acquire more users, and even though they provide friendly VPN
@@ -5084,6 +5100,49 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 - Crash logs is located in Settings -> View Service Log
 
 `Settings``View Service Log`
+---
+
+## sing-box for Desktop
+
+**Source URL**: <https://sing-box.sagernet.org/clients/desktop/>
+
+# sing-box for Desktop
+
+SFW allows users to manage and run local or remote sing-box configuration files, and provides
+platform-specific function implementation, such as TUN transparent proxy implementation.
+
+Linux support is on the way.
+
+##  Requirements
+
+- Windows 10+ (x64 / x86 / arm64)
+
+##  Download
+
+- GitHub Releases
+
+##  Source code
+
+- GitHub
+
+
+---
+
+## Features
+
+**Source URL**: <https://sing-box.sagernet.org/clients/desktop/features/>
+
+#  Features
+
+#### Service
+
+SFW runs sing-box as a system service, so no administrator elevation is required for daily use.
+
+### Chore
+
+- The working directory is located at C:\ProgramData\sing-box-daemon
+
+`C:\ProgramData\sing-box-daemon`
 ---
 
 ## General
