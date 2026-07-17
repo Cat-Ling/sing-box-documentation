@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-15 02:15:41 UTC
+> Generated on: 2026-07-17 02:31:16 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -213,6 +213,22 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.45
+
+- Improve the Windows client application 1
+- Fixes and improvements
+
+1:
+
+The Windows client now includes an updater, adds support
+for Windows native sharing of sing-box profile and JSON files, and fixes the
+Tailscale SSH terminal. The
+Tailscale SSH server can now
+open sessions for any local user in the graphical client, while the command
+line client remains limited to the user sing-box runs as. Additionally,
+configurations that use privileges unrelated to networking are now rejected by
+default; an insecure mode is available to allow them.
 
 #### 1.14.0-alpha.44
 
@@ -7856,7 +7872,7 @@ Run a Tailscale SSH server on tailnet port 22.
 Access is controlled by the SSH ACL in the Tailscale admin console, which maps each connection to a local user. How that user is resolved, and which users are allowed, depends on the platform:
 
 - Linux and macOS: the user is resolved from the system user database. Switching to a user other than the one sing-box runs as requires running as root; without root, sessions are limited to the current user.
-- Windows: sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused.
+- Windows: in the command line client, sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused. In the graphical client, there is no such restriction.
 - Android: the user is resolved by the app rather than the system user database. root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory, so the target application must be installed. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access; without root, sessions are limited to the sing-box user.
 - macOS: the SSH server is only available in the standalone version and requires the Root Helper; the App Store version is not supported.
 - iOS: the SSH server is only available in the jailbreak build; the App Store and TestFlight versions are not supported.
