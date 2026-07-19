@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-17 02:31:16 UTC
+> Generated on: 2026-07-19 02:34:19 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -13,6 +13,9 @@
 - [Introduction](#introduction)
 - [Certificate](#certificate)
 - [Endpoint](#endpoint)
+- [OpenConnect Client](#openconnect-client)
+- [OpenVPN Client](#openvpn-client)
+- [OpenVPN Server](#openvpn-server)
 - [Tailscale](#tailscale)
 - [WireGuard](#wireguard)
 - [Experimental](#experimental)
@@ -105,6 +108,7 @@
 - [QUIC Fields](#quic-fields)
 - [TCP Brutal](#tcp-brutal)
 - [TLS](#tls)
+- [UDP NAT Fields](#udp-nat-fields)
 - [UDP over TCP](#udp-over-tcp)
 - [V2Ray Transport](#v2ray-transport)
 - [Wi-Fi State](#wi-fi-state)
@@ -214,7 +218,50 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.45
+#### 1.14.0-alpha.47
+
+- Add OpenVPN client and server support 1
+- Add OpenConnect client support 2
+- Fixes and improvements
+
+1:
+
+The new OpenVPN Client and
+OpenVPN Server endpoints are
+compatible with standard OpenVPN clients and servers. Interactive client
+authentication is available through the sing-box graphical clients and
+Dashboard.
+
+2:
+
+The new OpenConnect Client endpoint
+supports Cisco AnyConnect, GlobalProtect, Fortinet, F5, Pulse Connect Secure,
+and Juniper Network Connect VPN servers. Interactive authentication is
+available through the sing-box graphical clients and
+Dashboard.
+
+#### 1.14.0-alpha.46
+
+- Add multiple tags support to rule-sets 1
+- Add new UDP NAT options 2
+- Fixes and improvements
+
+1:
+
+The rule-set tag field now accepts a list of
+tags to define multiple rule-sets sharing other options at once, with the
+{tag} placeholder in path or url replaced by each tag.
+
+`tag``{tag}``path``url`2:
+
+The new UDP NAT fields
+udp_mapping,
+udp_filtering and
+udp_nat_max configure the NAT
+mapping and filtering behaviors and the maximum number of UDP NAT sessions for
+TUN and TProxy inbounds and the WireGuard endpoint.
+
+`udp_mapping``udp_filtering``udp_nat_max`#### 1.14.0-alpha.45
 
 - Improve the Windows client application 1
 - Fixes and improvements
@@ -7693,10 +7740,1313 @@ An endpoint is a protocol with inbound and outbound behavior.
 | --- | --- |
 | wireguard | WireGuard | 
 | tailscale | Tailscale | 
+| openconnect | OpenConnect Client | 
+| openvpn-client | OpenVPN Client | 
+| openvpn-server | OpenVPN Server | 
 
-`wireguard``tailscale`#### tag
+`wireguard``tailscale``openconnect``openvpn-client``openvpn-server`#### tag
 
 The tag of the endpoint.
+
+
+---
+
+## OpenConnect Client
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/openconnect/>
+
+# OpenConnect Client
+
+Since sing-box 1.14.0
+
+Client only
+
+## Structure
+
+```
+{
+  "type": "openconnect",
+  "tag": "oc-client",
+
+  "system": false,
+  "name": "",
+
+  ... // UDP NAT Fields
+
+  "server": "vpn.example.com",
+  "flavor": "anyconnect",
+  "username": "",
+  "password": "",
+  "auth_group": "",
+  "token": {
+    "mode": "",
+    "secret": "",
+    "pin": "",
+    "password": "",
+    "device_id": "",
+    "counter": 0
+  },
+  "reported_os": "",
+  "user_agent": "",
+  "csd": {
+    "wrapper_path": ""
+  },
+  "hip": {
+    "wrapper_path": ""
+  },
+  "tncc": {
+    "wrapper_path": "",
+    "device_id": "",
+    "user_agent": "",
+    "machine_identification_enabled": false,
+    "certificates": [
+      {
+        "certificate": [],
+        "certificate_path": ""
+      }
+    ]
+  },
+  "no_udp": false,
+  "allow_insecure_crypto": false,
+  "tls": {
+    "certificate_authority": [],
+    "certificate_authority_path": "",
+    "client_certificate": [],
+    "client_certificate_path": "",
+    "client_key": [],
+    "client_key_path": "",
+    "client_key_password": "",
+    "mca_certificate": [],
+    "mca_certificate_path": "",
+    "mca_key": [],
+    "mca_key_path": "",
+    "mca_key_password": ""
+  },
+  "form_entries": [
+    {
+      "form_id": "",
+      "submission_key": "",
+      "name": "",
+      "value": "",
+      "promote": false
+    }
+  ],
+
+  ... // Dial Fields
+}
+
+```
+
+You can ignore the JSON Array [] tag when the content is only one item.
+
+## Fields
+
+### system
+
+Use a system interface.
+
+Requires privilege and cannot conflict with existing system interfaces.
+
+If disabled, sing-box uses the internal network stack.
+
+### name
+
+Custom interface name for the system interface.
+
+An automatically generated oc interface name is used by default.
+
+`oc`### server
+
+Required
+
+OpenConnect VPN server HTTPS URL.
+
+The https:// scheme is added if omitted. URL user information, queries, and fragments are not supported.
+
+`https://`### flavor
+
+OpenConnect protocol flavor, one of anyconnect, gp, fortinet, f5, pulse, or nc.
+
+`anyconnect``gp``fortinet``f5``pulse``nc`anyconnect is used by default.
+
+`anyconnect`### username
+
+Username used to fill matching authentication form fields.
+
+### password
+
+Password used to fill matching authentication form fields.
+
+### auth_group
+
+Authentication group used to preselect a matching group, realm, domain, or gateway choice when supported by the selected flavor.
+
+### token
+
+Software token configuration for automatically answering matching token fields.
+
+### token.mode
+
+Required
+
+Software token mode, one of:
+
+- totp: Time-based One-Time Password.
+- hotp: HMAC-based One-Time Password.
+- stoken: RSA SecurID software token.
+
+`totp``hotp``stoken`### token.secret
+
+Required
+
+Software token secret.
+
+For totp and hotp, this can be a Base32 secret, a base32:-prefixed secret, or an otpauth:// URI of the matching type.
+
+`totp``hotp``base32:``otpauth://`For stoken, this is the encoded RSA SecurID CTF token content.
+
+`stoken`### token.pin
+
+RSA SecurID PIN for stoken mode.
+
+`stoken`### token.password
+
+Password for decrypting a password-protected RSA SecurID token in stoken mode.
+
+`stoken`### token.device_id
+
+Device ID for decrypting a device-bound RSA SecurID token in stoken mode.
+
+`stoken`### token.counter
+
+Initial counter for hotp mode.
+
+`hotp`If zero, the counter from an otpauth:// URI is used when present; otherwise the counter starts at zero.
+
+`otpauth://`### reported_os
+
+Operating system identity reported to the VPN server when supported by the selected flavor.
+
+For anyconnect, gp, and pulse, the supported values are linux, linux-64, win, mac-intel, android, and apple-ios.
+
+`anyconnect``gp``pulse``linux``linux-64``win``mac-intel``android``apple-ios`anyconnect uses linux-64 by default. gp and pulse select a value based on the system platform by default.
+
+`anyconnect``linux-64``gp``pulse`### user_agent
+
+User agent reported to the VPN server when supported by the selected flavor.
+
+The default is flavor-specific.
+
+### csd
+
+AnyConnect CSD/host scan compliance options.
+
+Built-in CSD handling is used by default when requested by the server.
+
+### csd.wrapper_path
+
+Path to an external AnyConnect CSD wrapper executable.
+
+Built-in CSD handling is used if empty.
+
+### hip
+
+GlobalProtect HIP check and report options.
+
+Built-in HIP reporting is used by default when requested by the server.
+
+### hip.wrapper_path
+
+Path to an external GlobalProtect HIP report wrapper executable.
+
+Built-in HIP reporting is used if empty.
+
+### tncc
+
+Network Connect TNCC compliance options.
+
+Built-in TNCC handling is used by default when requested by the server.
+
+### tncc.wrapper_path
+
+Path to an external Network Connect TNCC wrapper executable.
+
+Built-in TNCC handling is used if empty.
+
+Conflict with tncc.device_id, tncc.user_agent, tncc.machine_identification_enabled, and tncc.certificates.
+
+`tncc.device_id``tncc.user_agent``tncc.machine_identification_enabled``tncc.certificates`### tncc.device_id
+
+Device ID reported by the built-in TNCC handler.
+
+Conflict with tncc.wrapper_path.
+
+`tncc.wrapper_path`### tncc.user_agent
+
+User agent used by the built-in TNCC handler.
+
+Neoteris HC Http is used by default.
+
+`Neoteris HC Http`Conflict with tncc.wrapper_path.
+
+`tncc.wrapper_path`### tncc.machine_identification_enabled
+
+Enable built-in TNCC machine identification, including the platform, hostname, and observed MAC addresses.
+
+Conflict with tncc.wrapper_path.
+
+`tncc.wrapper_path`### tncc.certificates
+
+Machine certificates used by the built-in TNCC handler to answer certificate requests.
+
+Requires tncc.machine_identification_enabled.
+
+`tncc.machine_identification_enabled`Conflict with tncc.wrapper_path.
+
+`tncc.wrapper_path`### tncc.certificates.certificate
+
+TNCC machine certificate content in PEM format.
+
+Conflict with tncc.certificates.certificate_path.
+
+`tncc.certificates.certificate_path`### tncc.certificates.certificate_path
+
+TNCC machine certificate path in PEM format.
+
+Conflict with tncc.certificates.certificate.
+
+`tncc.certificates.certificate`### no_udp
+
+Disable the DTLS or ESP secondary data channel and use the TLS data channel only.
+
+### allow_insecure_crypto
+
+Allow deprecated TLS and DTLS versions and cipher suites required by legacy VPN servers.
+
+Disabled by default. This option does not disable server certificate verification.
+
+### tls
+
+OpenConnect TLS configuration.
+
+### tls.certificate_authority
+
+Additional trusted CA certificate content in PEM format.
+
+The certificates are added to the system certificate pool.
+
+Conflict with tls.certificate_authority_path.
+
+`tls.certificate_authority_path`### tls.certificate_authority_path
+
+Path to additional trusted CA certificates in PEM format.
+
+The certificates are added to the system certificate pool.
+
+Conflict with tls.certificate_authority.
+
+`tls.certificate_authority`### tls.client_certificate
+
+Client certificate chain content in PEM format.
+
+Conflict with tls.client_certificate_path.
+
+`tls.client_certificate_path`### tls.client_certificate_path
+
+Client certificate chain path in PEM format.
+
+Conflict with tls.client_certificate.
+
+`tls.client_certificate`### tls.client_key
+
+Client private key content in PEM format.
+
+Conflict with tls.client_key_path.
+
+`tls.client_key_path`### tls.client_key_path
+
+Client private key path in PEM format.
+
+Conflict with tls.client_key.
+
+`tls.client_key`The client certificate and key must both be set or both be empty.
+
+### tls.client_key_password
+
+Password for the encrypted client private key.
+
+### tls.mca_certificate
+
+AnyConnect multiple-certificate authentication (MCA) certificate chain content in PEM format.
+
+Conflict with tls.mca_certificate_path.
+
+`tls.mca_certificate_path`### tls.mca_certificate_path
+
+AnyConnect multiple-certificate authentication (MCA) certificate chain path in PEM format.
+
+Conflict with tls.mca_certificate.
+
+`tls.mca_certificate`### tls.mca_key
+
+AnyConnect multiple-certificate authentication (MCA) private key content in PEM format.
+
+Conflict with tls.mca_key_path.
+
+`tls.mca_key_path`### tls.mca_key_path
+
+AnyConnect multiple-certificate authentication (MCA) private key path in PEM format.
+
+Conflict with tls.mca_key.
+
+`tls.mca_key`The MCA certificate and key must both be set or both be empty.
+
+### tls.mca_key_password
+
+Password for the encrypted MCA private key.
+
+### form_entries
+
+Authentication form field overrides.
+
+An entry matches by submission_key when set, or by the combination of form_id and name. Later matching entries take precedence.
+
+`submission_key``form_id``name`### form_entries.form_id
+
+Authentication form identifier used with form_entries.name when form_entries.submission_key is empty.
+
+`form_entries.name``form_entries.submission_key`### form_entries.submission_key
+
+Authentication field submission key.
+
+Either form_entries.submission_key or both form_entries.form_id and form_entries.name are required.
+
+`form_entries.submission_key``form_entries.form_id``form_entries.name`### form_entries.name
+
+Authentication field name used with form_entries.form_id when form_entries.submission_key is empty.
+
+`form_entries.form_id``form_entries.submission_key`### form_entries.value
+
+Value supplied automatically for the matching authentication field.
+
+Conflict with form_entries.promote.
+
+`form_entries.promote`### form_entries.promote
+
+Ask for the matching authentication field interactively instead of supplying an automatic value.
+
+Conflict with form_entries.value.
+
+`form_entries.value`## UDP NAT Fields
+
+See UDP NAT Fields for details.
+
+## Dial Fields
+
+See Dial Fields for details.
+
+## Interactive authentication
+
+Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client to authenticate and manage the endpoint.
+
+`Tools``Endpoints`
+---
+
+## OpenVPN Client
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/openvpn-client/>
+
+# OpenVPN Client
+
+Since sing-box 1.14.0
+
+## Structure
+
+```
+{
+  "type": "openvpn-client",
+  "tag": "ovpn-client",
+
+  "server": "127.0.0.1",
+  "server_port": 1194,
+  "servers": [
+    {
+      "server": "127.0.0.1",
+      "server_port": 1194,
+      "network": "udp"
+    }
+  ],
+  "remote_random": false,
+  "network": "udp",
+  "username": "",
+  "password": "",
+  "auth_retry": "none",
+  "static_challenge": "",
+  "static_challenge_echo": false,
+  "tls": {
+    "server_name": "",
+    "server_name_type": "name",
+    "certificate": [],
+    "certificate_path": "",
+    "client_certificate": [],
+    "client_certificate_path": "",
+    "client_key": [],
+    "client_key_path": "",
+    "peer_fingerprint": [],
+    "crl_path": "",
+    "remote_certificate_ku": [],
+    "remote_certificate_eku": "",
+    "version_min": "1.2",
+    "version_max": "",
+    "cipher": "",
+    "groups": "",
+    "control_wrap": {
+      "type": "",
+      "key": [],
+      "key_path": "",
+      "direction": ""
+    }
+  },
+  "data_ciphers": [],
+  "data_ciphers_fallback": "",
+  "auth": "",
+  "mss_fix": 0,
+  "fragment": 0,
+  "compression": "",
+  "compression_lzo": "",
+  "allow_compression": "no",
+  "route_no_pull": false,
+  "pull_filters": [
+    {
+      "action": "ignore",
+      "text": "route "
+    }
+  ],
+  "routes": [],
+  "route_gateway": "",
+  "route_metric": 0,
+  "redirect_gateway": false,
+  "redirect_gateway_flags": [],
+  "ping_interval": "",
+  "ping_restart": "",
+  "renegotiate_interval": "",
+  "explicit_exit_notify": 0,
+  "system": false,
+  "name": "",
+  "mtu": 1500,
+
+  ... // UDP NAT Fields
+
+  ... // Dial Fields
+}
+
+```
+
+You can ignore the JSON Array [] tag when the content is only one item.
+
+## Fields
+
+### server
+
+OpenVPN server address.
+
+Either server or servers is required.
+
+`server``servers`Conflict with servers.
+
+`servers`### server_port
+
+OpenVPN server port.
+
+Required when server is set.
+
+`server`### servers
+
+List of OpenVPN servers.
+
+The client tries the servers in order and moves to the next server when a connection fails.
+
+Either server or servers is required.
+
+`server``servers`Conflict with server.
+
+`server`### servers.server
+
+Required
+
+OpenVPN server address.
+
+### servers.server_port
+
+Required
+
+OpenVPN server port.
+
+### servers.network
+
+OpenVPN transport network for this server, one of udp or tcp.
+
+`udp``tcp`The top-level network is used by default.
+
+`network`### remote_random
+
+Randomize the servers order before connecting.
+
+`servers`Disabled by default.
+
+### network
+
+Default OpenVPN transport network, one of udp or tcp.
+
+`udp``tcp`udp is used by default.
+
+`udp`This value applies to server and to servers entries without their own network.
+
+`server``servers``network`### username
+
+Username for OpenVPN username/password authentication.
+
+### password
+
+Password for OpenVPN username/password authentication.
+
+### auth_retry
+
+Behavior after username/password authentication fails, one of none, nointeract, or interact.
+
+`none``nointeract``interact`none is used by default and treats a permanent authentication failure as terminal.
+
+`none`nointeract and interact allow authentication retries.
+
+`nointeract``interact`### static_challenge
+
+Static challenge text shown when requesting an authentication response.
+
+### static_challenge_echo
+
+Show the static challenge response as plain text.
+
+### tls
+
+Required
+
+OpenVPN control channel TLS configuration.
+
+### tls.server_name
+
+Expected server certificate name.
+
+Certificate name verification is disabled if empty. The certificate chain or fingerprint and server certificate usage are still verified.
+
+### tls.server_name_type
+
+Certificate field matched by tls.server_name, one of subject, name, or name-prefix.
+
+`tls.server_name``subject``name``name-prefix`name is used by default when tls.server_name is set.
+
+`name``tls.server_name`subject matches the full certificate subject, name matches the common name exactly, and name-prefix matches a common name prefix.
+
+`subject``name``name-prefix`### tls.certificate
+
+Trusted CA certificate content.
+
+One of tls.certificate, tls.certificate_path, or tls.peer_fingerprint is required.
+
+`tls.certificate``tls.certificate_path``tls.peer_fingerprint`Conflict with tls.certificate_path.
+
+`tls.certificate_path`### tls.certificate_path
+
+Trusted CA certificate path.
+
+One of tls.certificate, tls.certificate_path, or tls.peer_fingerprint is required.
+
+`tls.certificate``tls.certificate_path``tls.peer_fingerprint`Conflict with tls.certificate.
+
+`tls.certificate`### tls.client_certificate
+
+Client certificate content.
+
+Conflict with tls.client_certificate_path.
+
+`tls.client_certificate_path`### tls.client_certificate_path
+
+Client certificate path.
+
+Conflict with tls.client_certificate.
+
+`tls.client_certificate`### tls.client_key
+
+Client private key content.
+
+Conflict with tls.client_key_path.
+
+`tls.client_key_path`### tls.client_key_path
+
+Client private key path.
+
+Conflict with tls.client_key.
+
+`tls.client_key`The client certificate and key must both be set or both be empty.
+
+### tls.peer_fingerprint
+
+Allowed SHA-256 fingerprints of the server leaf certificate.
+
+Each fingerprint must be 64 lowercase hexadecimal characters without separators.
+
+When a trusted CA is also configured, both the certificate chain and fingerprint are verified. Without a trusted CA, the fingerprint, certificate validity period, configured name, and certificate usage are verified, but the certificate chain is not.
+
+### tls.crl_path
+
+Path to a PEM or DER certificate revocation list used to reject revoked server certificates.
+
+The CRL signature and validity period are verified against the trusted certificate chain.
+
+Disabled by default.
+
+### tls.remote_certificate_ku
+
+Required server certificate key usage masks, written as hexadecimal values in OpenVPN remote-cert-ku format.
+
+`remote-cert-ku`Multiple values are combined, and all requested usages must be present.
+
+Disabled by default.
+
+### tls.remote_certificate_eku
+
+Required server certificate extended key usage, one of server or client.
+
+`server``client`Disabled by default. The standard OpenVPN server certificate usage check still applies.
+
+### tls.version_min
+
+Minimum TLS version, one of 1.0, 1.1, 1.2, or 1.3.
+
+`1.0``1.1``1.2``1.3`1.2 is used by default.
+
+`1.2`### tls.version_max
+
+Maximum TLS version, one of 1.0, 1.1, 1.2, or 1.3.
+
+`1.0``1.1``1.2``1.3`The maximum supported version is used by default.
+
+The value cannot be lower than tls.version_min.
+
+`tls.version_min`### tls.cipher
+
+Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
+
+The default TLS cipher suites are used when empty. TLS 1.3 cipher suites are not controlled by this field.
+
+### tls.groups
+
+Colon-separated TLS key exchange groups in preference order.
+
+Supported groups are X25519, SECP256R1, SECP384R1, and SECP521R1, including their common OpenSSL and NIST aliases.
+
+`X25519``SECP256R1``SECP384R1``SECP521R1`The default TLS groups are used when empty.
+
+### tls.control_wrap
+
+OpenVPN control channel wrapping.
+
+Equivalent to OpenVPN tls-auth, tls-crypt, and tls-crypt-v2.
+
+`tls-auth``tls-crypt``tls-crypt-v2`Disabled if empty.
+
+### tls.control_wrap.type
+
+Control channel wrapping type, one of tls_auth, tls_crypt, or tls_crypt_v2.
+
+`tls_auth``tls_crypt``tls_crypt_v2`### tls.control_wrap.key
+
+Control channel wrapping key content.
+
+Conflict with tls.control_wrap.key_path.
+
+`tls.control_wrap.key_path`### tls.control_wrap.key_path
+
+Control channel wrapping key path.
+
+Conflict with tls.control_wrap.key.
+
+`tls.control_wrap.key`### tls.control_wrap.direction
+
+tls-auth key direction, one of server or client.
+
+`tls-auth``server``client`Only available when tls.control_wrap.type is tls_auth. The key is used bidirectionally if empty.
+
+`tls.control_wrap.type``tls_auth`### data_ciphers
+
+Allowed OpenVPN data channel ciphers.
+
+AES-256-GCM, AES-128-GCM, and CHACHA20-POLY1305 are used by default.
+
+`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`### data_ciphers_fallback
+
+Data channel cipher for peers that do not support cipher negotiation.
+
+Disabled by default.
+
+### auth
+
+OpenVPN data channel authentication digest.
+
+SHA1 is used by default. It only applies to non-AEAD data ciphers and tls_auth.
+
+`SHA1``tls_auth`### mss_fix
+
+Maximum OpenVPN UDP packet size used to clamp the MSS of TCP connections sent through the tunnel.
+
+This prevents TCP packets from exceeding the path MTU after OpenVPN encapsulation.
+
+When empty, the upstream OpenVPN default is used: fragment when configured,
+otherwise 1492 for the default tunnel MTU or the configured tunnel MTU.
+
+`fragment``1492`### fragment
+
+Maximum OpenVPN UDP packet size used for OpenVPN data channel fragmentation.
+
+Disabled when 0. A non-zero value must be at least 68.
+
+`0``68`Conflict with TCP transport.
+
+### compression
+
+OpenVPN compress framing mode, one of none, no, lz4, lz4-v2, stub, stub-v2, disabled, or off.
+
+`compress``none``no``lz4``lz4-v2``stub``stub-v2``disabled``off`Disabled by default.
+
+Compression can weaken traffic confidentiality. Prefer stub or stub-v2 only when framing compatibility is required.
+
+`stub``stub-v2`### compression_lzo
+
+OpenVPN comp-lzo mode, one of none, no, yes, adaptive, asym, disabled, or off.
+
+`comp-lzo``none``no``yes``adaptive``asym``disabled``off`Disabled by default.
+
+Compression can weaken traffic confidentiality. Enable it only when required by the server.
+
+### allow_compression
+
+Policy for compression pushed by the server, one of no, asym, or yes.
+
+`no``asym``yes`no is used by default and permits only compression stub framing. asym accepts compressed packets from the server but does not compress outgoing packets. yes permits compression in both directions.
+
+`no``asym``yes`Conflict with non-stub compression enabled by compression or compression_lzo when set to no.
+
+`compression``compression_lzo``no`### route_no_pull
+
+Ignore routes, DNS and DHCP settings, route metrics, redirect-gateway,
+redirect-private, block-ipv6, and block-outside-dns pushed by the server.
+
+`redirect-gateway``redirect-private``block-ipv6``block-outside-dns`Interface configuration, topology, tunnel MTU, route-gateway, and locally configured routes are still used.
+
+`route-gateway`Disabled by default.
+
+### pull_filters
+
+Ordered filters for options pushed by the server.
+
+The first filter whose text is a case-sensitive prefix of the complete pushed option is applied. Options that match no filter are accepted.
+
+`text`### pull_filters.action
+
+Required
+
+Filter action, one of accept, ignore, or reject.
+
+`accept``ignore``reject`accept applies the option, ignore discards it, and reject terminates the connection.
+
+`accept``ignore``reject`### pull_filters.text
+
+Required
+
+Case-sensitive prefix to match against the pushed option name and value.
+
+For example, route matches pushed IPv4 route options without matching route-gateway.
+
+`route``route-gateway`### routes
+
+IPv4 and IPv6 route prefixes routed through the OpenVPN endpoint.
+
+These routes are used in addition to routes accepted from the server.
+
+### route_gateway
+
+IPv4 gateway for routes through the OpenVPN endpoint.
+
+When empty, the VPN gateway received from the server is used.
+
+### route_metric
+
+Default metric for routes through the OpenVPN endpoint.
+
+The platform default is used when 0.
+
+`0`### redirect_gateway
+
+Route all IPv4 traffic through the OpenVPN endpoint.
+
+Disabled by default.
+
+### redirect_gateway_flags
+
+OpenVPN redirect-gateway flags.
+
+`redirect-gateway`!ipv4 disables the IPv4 default route, and ipv6 also routes all IPv6 traffic through the endpoint. Other OpenVPN flags are accepted for compatibility but do not change endpoint routing.
+
+`!ipv4``ipv6`Empty by default.
+
+### ping_interval
+
+Interval after which the client sends a data-channel ping when no packet has been sent to the server.
+
+A server-pushed OpenVPN ping value overrides this value.
+
+`ping`The value must use whole seconds.
+
+Disabled by default.
+
+### ping_restart
+
+Time without receiving a packet after which the client reconnects to the server.
+
+A server-pushed OpenVPN ping-restart value overrides this value.
+
+`ping-restart`The value must use whole seconds.
+
+When empty, 120s is used for UDP connections with pull enabled until the
+server pushes another value. No default receive timeout is used for TCP.
+
+`120s`### renegotiate_interval
+
+OpenVPN TLS renegotiation interval.
+
+When empty, the OpenVPN default 1h is used.
+
+`1h`### explicit_exit_notify
+
+Number of OpenVPN exit notifications sent when closing a UDP connection.
+
+Notifications are sent one second apart. Disabled when 0.
+
+`0`### system
+
+Use a system interface.
+
+Requires privilege and cannot conflict with existing system interfaces.
+
+If disabled, sing-box uses the internal network stack.
+
+### name
+
+Custom interface name for the system interface.
+
+An automatically generated ovpn interface name is used by default.
+
+`ovpn`### mtu
+
+OpenVPN interface MTU.
+
+When empty, 1500 is used until a server-pushed MTU is received.
+
+`1500`## UDP NAT Fields
+
+See UDP NAT Fields for details.
+
+## Dial Fields
+
+See Dial Fields for details.
+
+## Interactive authentication
+
+Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client to authenticate and manage the endpoint.
+
+`Tools``Endpoints`
+---
+
+## OpenVPN Server
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/openvpn-server/>
+
+# OpenVPN Server
+
+Since sing-box 1.14.0
+
+## Structure
+
+```
+{
+  "type": "openvpn-server",
+  "tag": "ovpn-server",
+
+  ... // Listen Fields
+
+  "system": false,
+  "name": "",
+  "mtu": 1500,
+  "network": "udp",
+  "max_clients": 1024,
+  "address": [],
+  "topology": "subnet",
+  "duplicate_cn": false,
+  "users": [
+    {
+      "username": "",
+      "password": ""
+    }
+  ],
+  "tls": {
+    "certificate": [],
+    "certificate_path": "",
+    "key": [],
+    "key_path": "",
+    "client_certificate": [],
+    "client_certificate_path": "",
+    "verify_client_certificate": "require",
+    "control_wrap": {
+      "type": "tls_crypt",
+      "key": [],
+      "key_path": "",
+      "direction": "",
+      "force_cookie": false
+    }
+  },
+  "data_ciphers": [],
+  "data_ciphers_fallback": "",
+  "auth": "",
+  "push": {
+    "routes": [],
+    "dns": [],
+    "redirect_gateway": false,
+    "redirect_gateway_flags": [],
+    "block_outside_dns": false,
+    "ping_interval": "",
+    "ping_restart": ""
+  },
+  "ping_interval": "",
+  "ping_restart": "",
+  "renegotiate_interval": "",
+  "handshake_window": "1m",
+
+  ... // UDP NAT Fields
+}
+
+```
+
+You can ignore the JSON Array [] tag when the content is only one item
+
+## Listen Fields
+
+See Listen Fields for details. udp_timeout is part of the UDP NAT Fields below.
+
+`udp_timeout`## Fields
+
+### system
+
+Use system interface.
+
+Requires privilege and cannot conflict with existing system interfaces.
+
+If disabled, sing-box uses the internal network stack.
+
+### name
+
+Custom interface name for system interface.
+
+An automatically generated ovpn interface name is used by default.
+
+`ovpn`### mtu
+
+OpenVPN interface MTU.
+
+1500 will be used by default.
+
+`1500`### network
+
+OpenVPN transport network, one of udp or tcp.
+
+`udp``tcp`udp will be used by default.
+
+`udp`Only one transport network is served per endpoint; to serve both TCP and UDP,
+configure two endpoints with separate address subnets,
+matching upstream OpenVPN which requires two server processes.
+
+`address`### max_clients
+
+Maximum number of established and pending TLS client sessions.
+
+1024 is used by default. The value must be smaller than 16777216, the size of the OpenVPN peer-id space.
+
+`1024``16777216`### address
+
+Required
+
+List of OpenVPN server address prefixes.
+
+At most one IPv4 prefix and one IPv6 prefix are supported.
+
+The prefix address is assigned to the server interface. The masked prefix is used as the client address pool and route.
+
+The first IPv4 and IPv6 prefix addresses are used as the endpoint's local addresses.
+
+### topology
+
+OpenVPN topology pushed to clients, one of subnet, p2p or net30.
+
+`subnet``p2p``net30`subnet will be used by default.
+
+`subnet`### duplicate_cn
+
+Allow multiple active clients with the same authenticated certificate common name or username.
+
+When disabled, a newly authenticated session replaces the existing session with the same identity and reuses its tunnel address when available.
+
+Disabled by default.
+
+### users
+
+List of OpenVPN username/password users.
+
+If set, clients must pass username/password authentication in addition to any certificate policy configured by tls.verify_client_certificate.
+
+`tls.verify_client_certificate`### users.username
+
+Username.
+
+### users.password
+
+Password.
+
+### tls
+
+Required
+
+OpenVPN control channel TLS configuration.
+
+### tls.certificate
+
+TLS server certificate content.
+
+Either tls.certificate or tls.certificate_path is required.
+
+`tls.certificate``tls.certificate_path`Conflict with tls.certificate_path.
+
+`tls.certificate_path`### tls.certificate_path
+
+TLS server certificate path.
+
+Either tls.certificate or tls.certificate_path is required.
+
+`tls.certificate``tls.certificate_path`Conflict with tls.certificate.
+
+`tls.certificate`### tls.key
+
+TLS server private key content.
+
+Either tls.key or tls.key_path is required.
+
+`tls.key``tls.key_path`Conflict with tls.key_path.
+
+`tls.key_path`### tls.key_path
+
+TLS server private key path.
+
+Either tls.key or tls.key_path is required.
+
+`tls.key``tls.key_path`Conflict with tls.key.
+
+`tls.key`### tls.client_certificate
+
+TLS CA certificate content, used to verify client certificates.
+
+Either tls.client_certificate or tls.client_certificate_path is required.
+
+`tls.client_certificate``tls.client_certificate_path`Conflict with tls.client_certificate_path.
+
+`tls.client_certificate_path`### tls.client_certificate_path
+
+TLS CA certificate path, used to verify client certificates.
+
+Either tls.client_certificate or tls.client_certificate_path is required.
+
+`tls.client_certificate``tls.client_certificate_path`Conflict with tls.client_certificate.
+
+`tls.client_certificate`### tls.verify_client_certificate
+
+OpenVPN client certificate policy, one of require, optional or none.
+
+`require``optional``none`require will be used by default.
+
+`require`If set to optional, a client certificate is verified when provided, but clients without a certificate are allowed.
+
+`optional`If set to none, client certificates are not requested.
+
+`none`This field does not replace users; when users is set, username/password authentication is still required.
+
+`users``users`### tls.control_wrap
+
+OpenVPN control channel wrapping.
+
+Equivalent to OpenVPN tls-auth, tls-crypt and tls-crypt-v2.
+
+`tls-auth``tls-crypt``tls-crypt-v2`Disabled by default.
+
+### tls.control_wrap.type
+
+Required
+
+Control channel wrapping type, one of tls_auth, tls_crypt or tls_crypt_v2.
+
+`tls_auth``tls_crypt``tls_crypt_v2`For tls_crypt_v2, the key is the server key.
+
+`tls_crypt_v2`### tls.control_wrap.key
+
+Control channel wrapping key content.
+
+Either tls.control_wrap.key or tls.control_wrap.key_path is required.
+
+`tls.control_wrap.key``tls.control_wrap.key_path`Conflict with tls.control_wrap.key_path.
+
+`tls.control_wrap.key_path`### tls.control_wrap.key_path
+
+Control channel wrapping key path.
+
+Either tls.control_wrap.key or tls.control_wrap.key_path is required.
+
+`tls.control_wrap.key``tls.control_wrap.key_path`Conflict with tls.control_wrap.key.
+
+`tls.control_wrap.key`### tls.control_wrap.direction
+
+OpenVPN tls-auth key direction, one of server or client.
+
+`tls-auth``server``client`Only available when tls.control_wrap.type is tls_auth.
+
+`tls.control_wrap.type``tls_auth`server maps to OpenVPN key direction 0, and client maps to 1; by convention servers use 0 and clients use 1.
+
+`server``0``client``1``0``1`If empty, the key is used bidirectionally, matching an omitted key-direction on both peers.
+
+`key-direction`### tls.control_wrap.force_cookie
+
+Require tls-crypt-v2 clients over UDP to support stateless session cookies.
+
+`tls-crypt-v2`Only available when tls.control_wrap.type is tls_crypt_v2. When disabled,
+clients without cookie support are accepted using the upstream allow-noncookie behavior.
+
+`tls.control_wrap.type``tls_crypt_v2``allow-noncookie`Disabled by default.
+
+### data_ciphers
+
+Allowed OpenVPN data channel ciphers.
+
+AES-256-GCM, AES-128-GCM and CHACHA20-POLY1305 are used by default.
+
+`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`### data_ciphers_fallback
+
+OpenVPN data channel cipher for legacy clients that do not support cipher negotiation.
+
+Equivalent to OpenVPN data-ciphers-fallback.
+
+`data-ciphers-fallback`Disabled by default.
+
+### auth
+
+OpenVPN data channel authentication digest.
+
+SHA1 will be used by default, matching the upstream default; it only applies to non-AEAD data ciphers and tls_auth.
+
+`SHA1``tls_auth`### push
+
+Options pushed to clients.
+
+### push.routes
+
+Routes to push to clients.
+
+IPv4 and IPv6 prefixes can be mixed.
+
+### push.dns
+
+DNS server addresses to push to clients.
+
+### push.redirect_gateway
+
+Push redirect-gateway to clients, which routes client traffic through the VPN according to push.redirect_gateway_flags.
+
+`redirect-gateway``push.redirect_gateway_flags`When push.redirect_gateway_flags is empty, def1 is used by default.
+
+`push.redirect_gateway_flags``def1`### push.redirect_gateway_flags
+
+OpenVPN redirect-gateway flags to push to clients.
+
+`redirect-gateway`Only available when push.redirect_gateway is enabled.
+
+`push.redirect_gateway`def1 is used by default.
+
+`def1`### push.block_outside_dns
+
+Push block-outside-dns to clients, which blocks DNS queries outside the VPN on Windows clients.
+
+`block-outside-dns`### push.ping_interval
+
+OpenVPN ping interval pushed to clients.
+
+`ping`After the interval passes without sending a packet, the client sends a data-channel ping to the server.
+
+The value must use whole seconds.
+
+Disabled by default.
+
+### push.ping_restart
+
+OpenVPN ping-restart timeout pushed to clients.
+
+`ping-restart`After the timeout passes without receiving a packet, the client reconnects to the server.
+
+The value must use whole seconds.
+
+Disabled by default.
+
+### ping_interval
+
+Interval after which the server sends a data-channel ping when no packet has been sent to a client.
+
+This value applies to the server. Use push.ping_interval to configure clients.
+
+`push.ping_interval`The value must use whole seconds.
+
+Disabled by default.
+
+### ping_restart
+
+Time without receiving a packet after which the server closes the client session.
+
+This value applies to the server. Use push.ping_restart to configure clients.
+
+`push.ping_restart`The server timeout should be longer than the client timeout so the client can reconnect before the server discards its session.
+
+The value must use whole seconds.
+
+Disabled by default.
+
+### renegotiate_interval
+
+OpenVPN TLS renegotiation interval.
+
+When empty, the OpenVPN default 1h is used.
+
+`1h`### handshake_window
+
+Maximum time allowed for the initial TLS handshake and each TLS renegotiation.
+
+1m is used by default.
+
+`1m`## UDP NAT Fields
+
+These fields configure UDP sessions for traffic through the OpenVPN interface.
+
+See UDP NAT Fields for details.
 
 
 ---
@@ -7766,7 +9116,7 @@ tailscale is used by default.
 
 Note
 
-Auth key is not required. By default, sing-box will log the login URL (or popup a notification on graphical clients).
+Auth key is not required. By default, sing-box will log the login URL.
 
 The auth key to create the node. If the node is already created (from state previously stored), then this field is not
 used.
@@ -7916,7 +9266,11 @@ Dial Fields in Tailscale endpoints only control how it connects to the control p
 
 See Dial Fields for details.
 
+### Interactive authentication
 
+Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client to authenticate and manage the endpoint.
+
+`Tools``Endpoints`
 ---
 
 ## WireGuard
@@ -7924,6 +9278,12 @@ See Dial Fields for details.
 **Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/wireguard/>
 
 # WireGuard
+
+Changes in sing-box 1.14.0
+
+udp_mapping
+ udp_filtering
+ udp_nat_max
 
 Since sing-box 1.11.0
 
@@ -7951,7 +9311,9 @@ Since sing-box 1.11.0
       "reserved": [0, 0, 0]
     }
   ],
-  "udp_timeout": "",
+
+  ... // UDP NAT Fields
+
   "workers": 0,
 
   ... // Dial Fields
@@ -8039,17 +9401,15 @@ Disabled by default.
 
 WireGuard reserved field bytes.
 
-#### udp_timeout
-
-UDP NAT expiration time.
-
-5m will be used by default.
-
-`5m`#### workers
+#### workers
 
 WireGuard worker count.
 
 CPU count is used by default.
+
+### UDP NAT Fields
+
+See UDP NAT Fields for details.
 
 ### Dial Fields
 
@@ -9667,6 +11027,12 @@ No authentication required if empty.
 
 # TProxy
 
+Changes in sing-box 1.14.0
+
+udp_mapping
+ udp_filtering
+ udp_nat_max
+
 Only supported on Linux.
 
 ### Structure
@@ -9678,7 +11044,9 @@ Only supported on Linux.
 
   ... // Listen Fields
 
-  "network": "udp"
+  "network": "udp",
+
+  ... // UDP NAT Fields
 }
 
 ```
@@ -9694,6 +11062,10 @@ See Listen Fields for details.
 Listen network, one of tcp udp.
 
 `tcp``udp`Both if empty.
+
+### UDP NAT Fields
+
+See UDP NAT Fields for details.
 
 
 ---
@@ -9882,6 +11254,9 @@ include_mac_address
  dns_mode
  dns_address
  netns
+ udp_mapping
+ udp_filtering
+ udp_nat_max
 
 Changes in sing-box 1.13.3
 
@@ -9983,7 +11358,9 @@ Only supported on Linux, Windows and macOS.
     "geoip-cn"
   ],
   "endpoint_independent_nat": false,
-  "udp_timeout": "5m",
+
+  ... // UDP NAT Fields
+
   "stack": "system",
   "include_interface": [
     "lan0"
@@ -10402,13 +11779,7 @@ Enable endpoint-independent NAT.
 
 Performance may degrade slightly, so it is not recommended to enable on when it is not needed.
 
-#### udp_timeout
-
-UDP NAT expiration time.
-
-5m will be used by default.
-
-`5m`#### stack
+#### stack
 
 Changes in sing-box 1.8.0
 
@@ -10532,6 +11903,10 @@ On Apple platforms, bypass_domain items matches hostname suffixes.
 Only supported in graphical clients on Apple platforms.
 
 Hostnames that use the HTTP proxy.
+
+### UDP NAT Fields
+
+See UDP NAT Fields for details.
 
 ### Listen Fields
 
@@ -14296,6 +15671,7 @@ Changes in sing-box 1.14.0
 
 http_client
  download_detour
+ tag
 
 Changes in sing-box 1.10.0
 
@@ -14321,7 +15697,7 @@ Since sing-box 1.10.0
 ```
 {
   "type": "local",
-  "tag": "",
+  "tag": "", // or []
   "format": "source", // or binary
   "path": ""
 }
@@ -14333,7 +15709,7 @@ Remote rule-set will be cached if experimental.cache_file.enabled.
 `experimental.cache_file.enabled````
 {
   "type": "remote",
-  "tag": "",
+  "tag": "", // or []
   "format": "source", // or binary
   "url": "",
   "http_client": "", // or {}
@@ -14360,7 +15736,16 @@ Required
 
 Tag of rule-set.
 
-### Inline Fields
+Since sing-box 1.14.0
+
+tag also accepts a list of tags to define multiple rule-sets sharing other options at once.
+
+`tag`The {tag} placeholder in path or url is replaced by each tag,
+and is required when multiple tags are set.
+
+`{tag}``path``url`Multiple tags conflict with type: inline.
+
+`type: inline`### Inline Fields
 
 Since sing-box 1.10.0
 
@@ -18104,6 +19489,80 @@ The maximum time difference between the server and the client.
 Check disabled if empty.
 
 
+---
+
+## UDP NAT Fields
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/shared/udp-nat/>
+
+# UDP NAT Fields
+
+Changes in sing-box 1.14.0
+
+udp_mapping
+ udp_filtering
+ udp_nat_max
+
+### Structure
+
+```
+{
+  "udp_timeout": "5m",
+  "udp_mapping": "endpoint_independent",
+  "udp_filtering": "endpoint_independent",
+  "udp_nat_max": 0
+}
+
+```
+
+### Fields
+
+#### udp_timeout
+
+UDP NAT expiration time.
+
+5m will be used by default.
+
+`5m`#### udp_mapping
+
+Since sing-box 1.14.0
+
+UDP NAT mapping behavior.
+
+| Value | Behavior | 
+| --- | --- |
+| endpoint_independent | Reuse the same mapping for the same source address and port for all destinations. | 
+| address_dependent | Use a separate mapping for each destination address. | 
+| address_and_port_dependent | Use a separate mapping for each destination address and port. | 
+
+`endpoint_independent``address_dependent``address_and_port_dependent`endpoint_independent is used by default.
+
+`endpoint_independent`#### udp_filtering
+
+Since sing-box 1.14.0
+
+UDP NAT filtering behavior.
+
+| Value | Behavior | 
+| --- | --- |
+| endpoint_independent | Accept packets from any remote endpoint. | 
+| address_dependent | Accept packets only from remote addresses to which packets have been sent. | 
+| address_and_port_dependent | Accept packets only from remote addresses and ports to which packets have been sent. | 
+
+`endpoint_independent``address_dependent``address_and_port_dependent`endpoint_independent is used by default.
+
+`endpoint_independent`#### udp_nat_max
+
+Since sing-box 1.14.0
+
+Maximum number of UDP NAT sessions.
+
+When the limit is reached, the least recently used session is closed.
+
+When unset or set to 0, 4096 is used on iOS. On other platforms, a value from 4096 to 16384 is selected based on total memory;
+16384 is used if total memory cannot be detected.
+
+`0``4096``4096``16384``16384`
 ---
 
 ## UDP over TCP
