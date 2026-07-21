@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-19 02:34:19 UTC
+> Generated on: 2026-07-21 02:32:16 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -217,6 +217,24 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-alpha.48
+
+- Add SSO support for AnyConnect 1
+- Add Linux support for the desktop client application 2
+- Fixes and improvements
+
+1:
+
+The OpenConnect Client endpoint now
+supports SSO (single sign-on) authentication for Cisco AnyConnect servers,
+available through the sing-box graphical clients.
+
+2:
+
+The sing-box for Desktop client is now available for Linux
+(x64 / arm64 / armv7l) from
+GitHub Releases.
 
 #### 1.14.0-alpha.47
 
@@ -4936,7 +4954,7 @@ Maintained by Project S to provide a unified experience and platform-specific fu
 |  Android | sing-box for Android | 
 |  iOS/macOS/Apple tvOS | sing-box for Apple platforms | 
 |  Windows | sing-box for Desktop | 
-|  Linux | Working in progress | 
+|  Linux | sing-box for Desktop | 
 
 Some third-party projects that claim to use sing-box or use sing-box as a selling point are not listed here. The core
 motivation of the maintainers of such projects is to acquire more users, and even though they provide friendly VPN
@@ -5171,14 +5189,13 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 
 # sing-box for Desktop
 
-SFW allows users to manage and run local or remote sing-box configuration files, and provides
-platform-specific function implementation, such as TUN transparent proxy implementation.
-
-Linux support is on the way.
+sing-box for Desktop allows users to manage and run local or remote sing-box configuration files,
+and provides platform-specific functionality, such as TUN transparent proxying.
 
 ##  Requirements
 
 - Windows 10+ (x64 / x86 / arm64)
+- Linux (x64 / arm64 / armv7l)
 
 ##  Download
 
