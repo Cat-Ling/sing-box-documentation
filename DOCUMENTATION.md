@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-21 02:32:16 UTC
+> Generated on: 2026-07-23 02:36:03 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -128,6 +128,8 @@
 - [Legacy](#legacy)
 - [Local](#local)
 - [mDNS](#mdns)
+- [OpenConnect](#openconnect)
+- [OpenVPN](#openvpn)
 - [DNS over QUIC (DoQ)](#dns-over-quic-(doq))
 - [Resolved](#resolved)
 - [Tailscale](#tailscale)
@@ -218,7 +220,43 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.48
+#### 1.14.0-alpha.50
+
+- Improve OpenVPN interoperability 1
+- Improve OpenConnect interoperability 2
+- Add Fortinet host check support 3
+- Fixes and improvements
+
+1:
+
+The OpenVPN client and server now interoperate with more existing deployments
+through static-key mode, additional legacy ciphers and digests, and
+OpenVPN-compatible certificate purpose, key usage, extended key usage, and
+certificate profile checks. They also support more OpenVPN options for tunnel
+addressing, MSS calculation, replay windows, timers, and TLS renegotiation. The
+new OpenVPN DNS server can use both modern
+and legacy DNS options pushed by OpenVPN servers, while the sing-box server can
+push both forms.
+
+2:
+
+The OpenConnect client now supports existing authentication sessions, OIDC
+Bearer authentication, additional platform and AnyConnect mobile identity
+fields, AnyConnect compression, and controls for MTU, DPD and reconnect timing,
+TCP keep alive, and TLS trust and certificate pinning. The new
+OpenConnect DNS server can use pushed
+split-DNS resolvers and, when enabled, general pushed resolvers.
+
+3:
+
+The OpenConnect Client endpoint can now
+submit Fortinet host check results using the new
+fortinet_host_check
+option. This behavior is modeled after openfortivpn and is not an OpenConnect
+feature. sing-box only submits explicitly configured values when requested by
+the Fortinet server and does not collect system information automatically.
+
+`fortinet_host_check`#### 1.14.0-alpha.48
 
 - Add SSO support for AnyConnect 1
 - Add Linux support for the desktop client application 2
@@ -6119,9 +6157,10 @@ Match specified DNS servers' preferred domains.
 | local | Match hosts entries, neighbor-resolved hosts, and mDNS local domains | 
 | mdns | Match mDNS local domains (*.local. and IPv4/IPv6 link-local reverse zones) | 
 | tailscale | Match MagicDNS hosts and DNS route suffixes | 
+| openconnect | Match split DNS and search domains pushed by the VPN server | 
 | resolved | Match split DNS and search domains from systemd-resolved links | 
 
-`hosts``local``mdns``*.local.``tailscale``resolved`#### wifi_ssid
+`hosts``local``mdns``*.local.``tailscale``openconnect``resolved`#### wifi_ssid
 
 Only supported in graphical clients on Android and Apple platforms, or on Linux.
 
@@ -6630,9 +6669,11 @@ The type of the DNS server.
 | mdns | mDNS | 
 | fakeip | Fake IP | 
 | tailscale | Tailscale | 
+| openconnect | OpenConnect | 
+| openvpn | OpenVPN | 
 | resolved | Resolved | 
 
-`local``hosts``tcp``udp``tls``quic``https``h3``dhcp``mdns``fakeip``tailscale``resolved`#### tag
+`local``hosts``tcp``udp``tls``quic``https``h3``dhcp``mdns``fakeip``tailscale``openconnect``openvpn``resolved`#### tag
 
 The tag of the DNS server.
 
@@ -7250,6 +7291,194 @@ See Dial Fields for details.
 
 ---
 
+## OpenConnect
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/openconnect/>
+
+Since sing-box 1.14.0
+
+# OpenConnect
+
+### Structure
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "openconnect",
+        "tag": "",
+
+        "endpoint": "oc-client",
+        "accept_default_resolvers": false,
+        "accept_search_domain": false
+      }
+    ]
+  }
+}
+
+```
+
+### Fields
+
+#### endpoint
+
+Required
+
+The tag of the OpenConnect Endpoint.
+
+DNS queries are sent to the resolvers pushed by the VPN server through the OpenConnect endpoint. Pushed split-DNS rules use their dedicated resolvers, while pushed split-DNS and search-domain suffixes use the general pushed resolvers. The most specific matching suffix takes precedence.
+
+Pushed DNS settings are not installed into the operating system.
+
+#### accept_default_resolvers
+
+Accept the general resolvers pushed by the VPN server for unmatched queries.
+
+When enabled, the general resolvers are used as the default only if the server requests all DNS through the tunnel, or if it does not provide split-DNS rules or suffixes. Otherwise, unmatched queries return NXDOMAIN.
+
+`NXDOMAIN`#### accept_search_domain
+
+When enabled and pushed search domains are available, single-label queries (for example, intranet) are retried with each search domain until one resolves.
+
+`intranet`If every search-domain expansion returns NXDOMAIN, the original unqualified name follows normal default-resolver behavior.
+
+`NXDOMAIN`### Examples
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "openconnect",
+        "tag": "oc",
+        "endpoint": "oc-client"
+      }
+    ],
+    "rules": [
+      {
+        "preferred_by": "oc",
+        "action": "route",
+        "server": "oc"
+      }
+    ],
+    "final": "local"
+  }
+}
+
+```
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "openconnect",
+        "endpoint": "oc-client",
+        "accept_default_resolvers": true,
+        "accept_search_domain": true
+      }
+    ]
+  }
+}
+
+```
+
+
+---
+
+## OpenVPN
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/openvpn/>
+
+Since sing-box 1.14.0
+
+# OpenVPN
+
+### Structure
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "openvpn",
+        "tag": "",
+
+        "endpoint": "ovpn-client",
+        "accept_default_resolvers": false,
+        "accept_search_domain": false
+      }
+    ]
+  }
+}
+
+```
+
+### Fields
+
+#### endpoint
+
+Required
+
+The tag of the OpenVPN Client Endpoint.
+
+DNS queries are sent through the endpoint to resolvers pushed by the OpenVPN server. Modern OpenVPN dns server options support plain DNS, DNS over TLS, DNS over HTTPS, custom ports, SNI, and resolve-domains. Only the server group with the lowest priority number is active. Legacy dhcp-option DNS/DNS6 and DOMAIN-ROUTE are used when no modern server group is present.
+
+`dns server``resolve-domains``dhcp-option DNS``DNS6``DOMAIN-ROUTE`A modern server group overrides legacy DHCP DNS resolver and domain options. A standalone modern dns search-domains option does not remove legacy resolvers. Required DNSSEC validation (dnssec yes) is rejected because this transport does not provide DNSSEC validation.
+
+`dns search-domains``dnssec yes`Pushed DNS settings are not installed into the operating system.
+
+#### accept_default_resolvers
+
+Use pushed resolvers for queries that do not match a pushed resolve-domains, DOMAIN-ROUTE, or search-domain suffix.
+
+`resolve-domains``DOMAIN-ROUTE`When disabled, unmatched queries return NXDOMAIN.
+
+`NXDOMAIN`#### accept_search_domain
+
+When enabled and pushed search domains are available, single-label queries (for example, intranet) are retried with each search domain until one resolves.
+
+`intranet`If no search domain is available, the original single-label query follows normal default-resolver behavior.
+
+### Example
+
+```
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "local",
+        "tag": "local"
+      },
+      {
+        "type": "openvpn",
+        "tag": "ovpn-dns",
+        "endpoint": "ovpn-client",
+        "accept_default_resolvers": true,
+        "accept_search_domain": true
+      }
+    ],
+    "rules": [
+      {
+        "preferred_by": "ovpn-dns",
+        "action": "route",
+        "server": "ovpn-dns"
+      }
+    ],
+    "final": "local"
+  }
+}
+
+```
+
+
+---
+
 ## DNS over QUIC (DoQ)
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/dns/server/quic/>
@@ -7795,9 +8024,11 @@ Client only
   "username": "",
   "password": "",
   "auth_group": "",
+  "cookie": "",
   "token": {
     "mode": "",
     "secret": "",
+    "secret_path": "",
     "pin": "",
     "password": "",
     "device_id": "",
@@ -7805,6 +8036,13 @@ Client only
   },
   "reported_os": "",
   "user_agent": "",
+  "version": "",
+  "local_hostname": "",
+  "mobile": {
+    "platform_version": "",
+    "device_type": "",
+    "device_unique_id": ""
+  },
   "csd": {
     "wrapper_path": ""
   },
@@ -7823,9 +8061,33 @@ Client only
       }
     ]
   },
+  "fortinet_host_check": {
+    "hostcheck": "",
+    "check_virtual_desktop": ""
+  },
   "no_udp": false,
+  "dtls_local_port": 0,
+  "compression_disabled": false,
+  "compression_mode": "",
+  "ipv6_disabled": false,
+  "http_keepalive_disabled": false,
+  "xml_post_disabled": false,
+  "external_auth_disabled": false,
+  "password_authentication_disabled": false,
+  "tcp_keep_alive_enabled": false,
+  "pfs": false,
+  "mtu": 0,
+  "base_mtu": 0,
+  "dpd_interval": "",
+  "reconnect_timeout": "",
+  "trojan_interval": "",
+  "queue_length": 0,
   "allow_insecure_crypto": false,
   "tls": {
+    "insecure": false,
+    "server_name": "",
+    "peer_fingerprint": [],
+    "system_trust_disabled": false,
     "certificate_authority": [],
     "certificate_authority_path": "",
     "client_certificate": [],
@@ -7898,23 +8160,39 @@ Password used to fill matching authentication form fields.
 
 Authentication group used to preselect a matching group, realm, domain, or gateway choice when supported by the selected flavor.
 
+### cookie
+
+Existing authentication session used to connect without first prompting for credentials.
+
+The accepted format depends on flavor:
+
+`flavor`- anyconnect: A webvpn value, or a semicolon-separated cookie list containing webvpn.
+- gp: The complete authenticated query string returned by GlobalProtect authentication.
+- nc: A DSID value, or a semicolon-separated cookie list containing DSID.
+- pulse: The raw Pulse authentication cookie value.
+- f5: An MRHSession value, or a semicolon-separated cookie list containing MRHSession and optionally F5_ST.
+- fortinet: An SVPNCOOKIE value, or a semicolon-separated cookie list containing SVPNCOOKIE.
+
+`anyconnect``webvpn``webvpn``gp``nc``DSID``DSID``pulse``f5``MRHSession``MRHSession``F5_ST``fortinet``SVPNCOOKIE``SVPNCOOKIE`If the server rejects the supplied session, normal authentication is attempted.
+
 ### token
 
-Software token configuration for automatically answering matching token fields.
+Token configuration for automatically answering matching token fields or HTTP Bearer authentication.
 
-### token.mode
+One of token.secret or token.secret_path is required.
+
+`token.secret``token.secret_path`### token.mode
 
 Required
 
-Software token mode, one of:
+Token mode, one of:
 
 - totp: Time-based One-Time Password.
 - hotp: HMAC-based One-Time Password.
 - stoken: RSA SecurID software token.
+- oidc: OIDC access token used for HTTP Bearer authentication.
 
-`totp``hotp``stoken`### token.secret
-
-Required
+`totp``hotp``stoken``oidc`### token.secret
 
 Software token secret.
 
@@ -7922,7 +8200,17 @@ For totp and hotp, this can be a Base32 secret, a base32:-prefixed secret, or an
 
 `totp``hotp``base32:``otpauth://`For stoken, this is the encoded RSA SecurID CTF token content.
 
-`stoken`### token.pin
+`stoken`For oidc, this is the access token value. It is sent only after the VPN server requests HTTP Bearer authentication.
+
+`oidc`Conflict with token.secret_path.
+
+`token.secret_path`### token.secret_path
+
+Path to the software token secret or OIDC access token.
+
+Conflict with token.secret.
+
+`token.secret`### token.pin
 
 RSA SecurID PIN for stoken mode.
 
@@ -7946,13 +8234,41 @@ Operating system identity reported to the VPN server when supported by the selec
 
 For anyconnect, gp, and pulse, the supported values are linux, linux-64, win, mac-intel, android, and apple-ios.
 
-`anyconnect``gp``pulse``linux``linux-64``win``mac-intel``android``apple-ios`anyconnect uses linux-64 by default. gp and pulse select a value based on the system platform by default.
+`anyconnect``gp``pulse``linux``linux-64``win``mac-intel``android``apple-ios`The default is selected from the system platform: win on Windows, mac-intel on macOS, android on Android, apple-ios on iOS, and linux-64 or linux on other 64-bit or 32-bit systems.
 
-`anyconnect``linux-64``gp``pulse`### user_agent
+`win``mac-intel``android``apple-ios``linux-64``linux`### user_agent
 
 User agent reported to the VPN server when supported by the selected flavor.
 
-The default is flavor-specific.
+The default is flavor-specific. AnyConnect, Network Connect, Pulse, and F5 use AnyConnect-compatible OpenConnect VPN Agent v9.21; GlobalProtect uses PAN GlobalProtect; Fortinet uses Mozilla/5.0 SV1.
+
+`AnyConnect-compatible OpenConnect VPN Agent v9.21``PAN GlobalProtect``Mozilla/5.0 SV1`### version
+
+Client version reported separately from user_agent when supported by the selected flavor.
+
+`user_agent`v9.21 is used by default. Currently used by AnyConnect XML authentication.
+
+`v9.21`### local_hostname
+
+Local hostname reported to the VPN server when supported by the selected flavor.
+
+The system hostname is used by default, or localhost if it is unavailable.
+
+`localhost`### mobile
+
+AnyConnect mobile client identity. When configured, all three fields are required and are reported during XML authentication and tunnel establishment.
+
+### mobile.platform_version
+
+Mobile operating system version reported to the AnyConnect server.
+
+### mobile.device_type
+
+Mobile device model or type reported to the AnyConnect server.
+
+### mobile.device_unique_id
+
+Mobile device identifier reported to the AnyConnect server.
 
 ### csd
 
@@ -8032,21 +8348,187 @@ TNCC machine certificate path in PEM format.
 
 Conflict with tncc.certificates.certificate.
 
-`tncc.certificates.certificate`### no_udp
+`tncc.certificates.certificate`### fortinet_host_check
+
+Fortinet hostcheck result override.
+
+Hostcheck is disabled by default. It is enabled only when fortinet_host_check.hostcheck is non-empty. No operating system, security product, or network interface information is collected automatically.
+
+`fortinet_host_check.hostcheck`When enabled and a successful Fortinet login response requests hostcheck, both configured values are submitted to the server before the VPN session is used. The values are sent unchanged as application/x-www-form-urlencoded fields.
+
+`application/x-www-form-urlencoded`Some Fortinet servers only request hostcheck from recognized FortiClient user agents. Configure user_agent when required by the server policy.
+
+`user_agent`### fortinet_host_check.hostcheck
+
+Fortinet hostcheck result string.
+
+The conventional format is <security-status>,<os-version>, for example 0100,10.0.19042. security-status contains four 0 or 1 characters representing, in order, third-party firewall, third-party antivirus, FortiClient firewall, and FortiClient antivirus.
+
+`<security-status>,<os-version>``0100,10.0.19042``security-status``0``1`An empty value disables Fortinet hostcheck, even if fortinet_host_check.check_virtual_desktop is configured.
+
+`fortinet_host_check.check_virtual_desktop`### fortinet_host_check.check_virtual_desktop
+
+Fortinet virtual desktop check result string.
+
+FortiClient conventionally sends colon-separated MAC addresses joined by |, for example 74:78:27:4d:81:93|84:1b:77:3a:95:84. An empty value is submitted as an empty field when hostcheck is enabled.
+
+`|``74:78:27:4d:81:93|84:1b:77:3a:95:84`### no_udp
 
 Disable the DTLS or ESP secondary data channel and use the TLS data channel only.
 
-### allow_insecure_crypto
+### dtls_local_port
 
-Allow deprecated TLS and DTLS versions and cipher suites required by legacy VPN servers.
+Local UDP port used by the direct DTLS or ESP secondary data channel.
 
-Disabled by default. This option does not disable server certificate verification.
+An automatically selected ephemeral port is used by default.
+
+### compression_disabled
+
+Disable AnyConnect compression negotiation.
+
+By default, stateless oc-lz4 and lzs compression is negotiated for CSTP and DTLS when supported by the server.
+
+`oc-lz4``lzs`Compression can weaken traffic confidentiality when an attacker can influence plaintext sent through the VPN tunnel.
+
+Conflict with compression_mode set to all.
+
+`compression_mode``all`### compression_mode
+
+AnyConnect compression mode, one of:
+
+- stateless: Advertise stateless oc-lz4 and lzs compression.
+- all: Additionally advertise stateful deflate compression for CSTP.
+
+`stateless``oc-lz4``lzs``all``deflate`stateless is used by default. DTLS always uses stateless compression, including when all is selected.
+
+`stateless``all`Stateful compression has additional traffic confidentiality risks and should only be enabled when required by the VPN server.
+
+### ipv6_disabled
+
+Disable requesting and using IPv6 tunnel configuration.
+
+### http_keepalive_disabled
+
+Disable HTTP connection reuse during authentication and configuration requests.
+
+### xml_post_disabled
+
+Disable AnyConnect XML POST authentication and start authentication with the legacy GET flow.
+
+### external_auth_disabled
+
+Disable external browser authentication such as SSO and SAML for AnyConnect and GlobalProtect.
+
+When enabled, external authentication is not advertised to the server and an unexpected external authentication request is rejected.
+
+### password_authentication_disabled
+
+Abort AnyConnect authentication if the server returns a non-success authentication form, matching OpenConnect --no-passwd behavior.
+
+`--no-passwd`This does not affect the other flavors or a session supplied by cookie.
+
+`cookie`### tcp_keep_alive_enabled
+
+Enable TCP keep alive for direct VPN server connections.
+
+Disabled by default to match OpenConnect. Setting tcp_keep_alive or tcp_keep_alive_interval also enables it without requiring this field. When enabled without either duration, the operating system TCP keep alive timing is retained.
+
+`tcp_keep_alive``tcp_keep_alive_interval`Conflict with disable_tcp_keep_alive.
+
+`disable_tcp_keep_alive`### pfs
+
+Require forward-secret TLS cipher suites for TLS 1.2 and earlier.
+
+Disabled by default for compatibility with VPN servers that require RSA key exchange. This does not enable deprecated cipher suites; see allow_insecure_crypto for legacy crypto support.
+
+`allow_insecure_crypto`### mtu
+
+Preferred tunnel MTU.
+
+The negotiated MTU is limited to this value for all flavors. For AnyConnect, this value is also sent to the server. GlobalProtect, F5, and Fortinet remove their protocol overhead before using it as the tunnel MTU.
+
+Non-zero values below 576 are treated as 576. The maximum value is 65535.
+
+`576``576``65535`### base_mtu
+
+Base path MTU used to calculate the AnyConnect, GlobalProtect, F5, and Fortinet tunnel MTU after outer IP, transport, and protocol overhead.
+
+1406 is used by default.
+
+`1406`These flavors treat values below 1280 as 1280. The maximum value is 65535.
+
+`1280``1280``65535`### dpd_interval
+
+Override the Dead Peer Detection interval.
+
+The server-provided or flavor-specific interval is used by default.
+
+Positive values below 2s are treated as 2s. The value must not be negative.
+
+`2s``2s`### reconnect_timeout
+
+Maximum accumulated backoff time after failed reconnect attempts. The first reconnect attempt starts immediately, and this timeout does not cancel an attempt already in progress.
+
+300s is used by default.
+
+`300s`The value must not be negative.
+
+### trojan_interval
+
+Override the interval between GlobalProtect HIP reports or Network Connect TNCC checks.
+
+The server-provided interval is used by default. GlobalProtect uses 1h when the server does not provide one.
+
+`1h`The value must not be negative.
+
+### queue_length
+
+Inbound and outbound packet queue length between the VPN transport and the tunnel interface.
+
+32 is used by default. A full queue applies backpressure until its consumer makes room; queued packets are not discarded.
+
+`32`### allow_insecure_crypto
+
+Enable weak TLS and DTLS cipher suites and TLS 1.0 compatibility required by legacy VPN servers.
+
+Disabled by default; TLS versions below 1.2 are otherwise rejected. This option does not disable server certificate verification.
 
 ### tls
 
 OpenConnect TLS configuration.
 
-### tls.certificate_authority
+### tls.insecure
+
+Disable verification of the VPN server certificate and hostname.
+
+Disabled by default. Enabling this permits an active attacker to impersonate the VPN server. Prefer tls.certificate_authority or tls.peer_fingerprint when possible.
+
+`tls.certificate_authority``tls.peer_fingerprint`### tls.server_name
+
+Server name used for TLS SNI and certificate hostname verification.
+
+The hostname from server is used by default.
+
+`server`### tls.peer_fingerprint
+
+Allowed server certificate fingerprints. A single string or a list can be specified.
+
+Supported formats:
+
+- An unprefixed SHA-1 certificate fingerprint compatible with OpenConnect --servercert.
+- sha1:<hex>: SHA-1 SPKI fingerprint.
+- sha256:<hex>: SHA-256 SPKI fingerprint.
+- pin-sha256:<base64>: Base64-encoded SHA-256 SPKI pin.
+
+`--servercert``sha1:<hex>``sha256:<hex>``pin-sha256:<base64>`The encoded fingerprint in every format can be abbreviated to a prefix of at least four characters. When configured, the peer certificate must match one of these fingerprints; a match can authorize a certificate that is not otherwise trusted.
+
+### tls.system_trust_disabled
+
+Disable the system CA certificate pool.
+
+Use tls.certificate_authority or tls.peer_fingerprint to establish trust when enabled.
+
+`tls.certificate_authority``tls.peer_fingerprint`### tls.certificate_authority
 
 Additional trusted CA certificate content in PEM format.
 
@@ -8166,7 +8648,11 @@ See Dial Fields for details.
 
 Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client to authenticate and manage the endpoint.
 
-`Tools``Endpoints`
+`Tools``Endpoints`## DNS
+
+Pushed DNS settings are not installed into the operating system. Configure an OpenConnect DNS server to use them through sing-box.
+
+
 ---
 
 ## OpenVPN Client
@@ -8184,6 +8670,7 @@ Since sing-box 1.14.0
   "type": "openvpn-client",
   "tag": "ovpn-client",
 
+  "mode": "tls",
   "server": "127.0.0.1",
   "server_port": 1194,
   "servers": [
@@ -8195,11 +8682,18 @@ Since sing-box 1.14.0
   ],
   "remote_random": false,
   "network": "udp",
+  "address": [],
+  "peer_address": "",
+  "peer_address_ipv6": "",
+  "topology": "",
   "username": "",
   "password": "",
   "auth_retry": "none",
   "static_challenge": "",
   "static_challenge_echo": false,
+  "static_key": [],
+  "static_key_path": "",
+  "key_direction": "",
   "tls": {
     "server_name": "",
     "server_name_type": "name",
@@ -8213,6 +8707,9 @@ Since sing-box 1.14.0
     "crl_path": "",
     "remote_certificate_ku": [],
     "remote_certificate_eku": "",
+    "remote_certificate_tls": "",
+    "certificate_profile": "",
+    "ns_certificate_type": "",
     "version_min": "1.2",
     "version_max": "",
     "cipher": "",
@@ -8224,11 +8721,16 @@ Since sing-box 1.14.0
       "direction": ""
     }
   },
+  "cipher": "",
   "data_ciphers": [],
   "data_ciphers_fallback": "",
   "auth": "",
   "mss_fix": 0,
+  "mss_fix_disabled": false,
+  "mss_fix_mode": "",
   "fragment": 0,
+  "replay_window": 0,
+  "replay_window_time": "",
   "compression": "",
   "compression_lzo": "",
   "allow_compression": "no",
@@ -8244,9 +8746,17 @@ Since sing-box 1.14.0
   "route_metric": 0,
   "redirect_gateway": false,
   "redirect_gateway_flags": [],
+  "redirect_private": false,
+  "block_ipv6": false,
   "ping_interval": "",
   "ping_restart": "",
+  "ping_restart_disabled": false,
   "renegotiate_interval": "",
+  "renegotiate_disabled": false,
+  "renegotiate_bytes": 0,
+  "renegotiate_packets": 0,
+  "tls_timeout": "",
+  "handshake_window": "",
   "explicit_exit_notify": 0,
   "system": false,
   "name": "",
@@ -8263,7 +8773,18 @@ You can ignore the JSON Array [] tag when the content is only one item.
 
 ## Fields
 
-### server
+### mode
+
+OpenVPN session mode, one of tls or static_key.
+
+`tls``static_key`tls is used by default.
+
+`tls`static_key is a deprecated OpenVPN mode without a TLS control channel or
+forward secrecy. It is retained as an explicit compatibility option for
+immutable enterprise VPN servers. It does not use tls, username/password
+authentication, pull options, or TLS renegotiation options.
+
+`static_key``tls`### server
 
 OpenVPN server address.
 
@@ -8319,9 +8840,37 @@ Default OpenVPN transport network, one of udp or tcp.
 
 `udp`This value applies to server and to servers entries without their own network.
 
-`server``servers``network`### username
+`server``servers``network`### address
+
+Local IPv4 and IPv6 tunnel prefixes.
+
+At least one address is required in static_key mode. In TLS mode these
+addresses are optional and can be replaced by addresses pulled from the
+server.
+
+`static_key`### peer_address
+
+IPv4 tunnel peer address and VPN gateway.
+
+Required when an IPv4 address is configured in static_key mode.
+
+`address``static_key`### peer_address_ipv6
+
+IPv6 tunnel peer address and VPN gateway.
+
+Required when an IPv6 address is configured in static_key mode.
+
+`address``static_key`### topology
+
+Tunnel topology, one of net30, p2p, or subnet.
+
+`net30``p2p``subnet`The topology pulled from the server is used when empty in TLS mode.
+
+### username
 
 Username for OpenVPN username/password authentication.
+
+Only available in TLS mode.
 
 ### password
 
@@ -8343,9 +8892,31 @@ Static challenge text shown when requesting an authentication response.
 
 Show the static challenge response as plain text.
 
-### tls
+### static_key
 
-Required
+OpenVPN static key content.
+
+Required in static_key mode.
+
+`static_key`Conflict with static_key_path.
+
+`static_key_path`### static_key_path
+
+OpenVPN static key path.
+
+Required in static_key mode when static_key is not set.
+
+`static_key``static_key`Conflict with static_key.
+
+`static_key`### key_direction
+
+Static key direction, one of server or client.
+
+`server``client`The key is used bidirectionally if empty. Only available in static_key mode.
+
+`static_key`### tls
+
+Required in TLS mode.
 
 OpenVPN control channel TLS configuration.
 
@@ -8425,17 +8996,50 @@ Disabled by default.
 
 Required server certificate key usage masks, written as hexadecimal values in OpenVPN remote-cert-ku format.
 
-`remote-cert-ku`Multiple values are combined, and all requested usages must be present.
+`remote-cert-ku`The certificate must contain all bits from at least one configured mask.
 
 Disabled by default.
 
 ### tls.remote_certificate_eku
 
-Required server certificate extended key usage, one of server or client.
+Required server certificate extended key usage.
 
-`server``client`Disabled by default. The standard OpenVPN server certificate usage check still applies.
+OpenSSL names, object identifiers, and the aliases server and client are accepted.
 
-### tls.version_min
+`server``client`When set, this field replaces the default tls.remote_certificate_tls check.
+
+`tls.remote_certificate_tls`Conflict with an explicitly configured tls.remote_certificate_tls.
+
+`tls.remote_certificate_tls`### tls.remote_certificate_tls
+
+Peer certificate purpose check, one of server, client, or none.
+
+`server``client``none`server is used by default.
+
+`server`none disables the certificate purpose check.
+
+`none`Conflict with tls.remote_certificate_eku.
+
+`tls.remote_certificate_eku`### tls.certificate_profile
+
+Certificate profile, one of insecure, legacy, preferred, or suiteb.
+
+`insecure``legacy``preferred``suiteb`legacy is used by default.
+
+`legacy`insecure accepts MD5- and SHA-1-signed certificate chains and smaller legacy
+keys for compatibility with immutable peers. Use it only when the peer cannot
+be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
+requires stronger signatures and keys.
+
+`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites. Explicit tls.cipher and tls.groups values are not restricted by the profile.
+
+`suiteb``tls.cipher``tls.cipher``tls.groups`### tls.ns_certificate_type
+
+Deprecated Netscape certificate type check, one of server or client.
+
+`server``client`Disabled by default. Prefer tls.remote_certificate_tls.
+
+`tls.remote_certificate_tls`### tls.version_min
 
 Minimum TLS version, one of 1.0, 1.1, 1.2, or 1.3.
 
@@ -8493,17 +9097,39 @@ tls-auth key direction, one of server or client.
 
 `tls-auth``server``client`Only available when tls.control_wrap.type is tls_auth. The key is used bidirectionally if empty.
 
-`tls.control_wrap.type``tls_auth`### data_ciphers
+`tls.control_wrap.type``tls_auth`### cipher
+
+Data-channel cipher used in static_key mode.
+
+`static_key`The upstream static-key default BF-CBC is used when empty. BF-CBC is a
+legacy cipher with a 64-bit block size; configure the cipher required by the
+server explicitly whenever possible. Static-key ciphers include BF-CBC,
+CAST5-CBC, DES-CBC, DES-EDE-CBC, DES-EDE3-CBC, the AES-CBC,
+ARIA-CBC, and Camellia-CBC families, SEED-CBC, SM4-CBC, and NONE.
+
+`BF-CBC``BF-CBC``BF-CBC``CAST5-CBC``DES-CBC``DES-EDE-CBC``DES-EDE3-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode. NONE provides no confidentiality.
+
+`static_key``NONE`### data_ciphers
 
 Allowed OpenVPN data channel ciphers.
 
+Only available in TLS mode.
+
 AES-256-GCM, AES-128-GCM, and CHACHA20-POLY1305 are used by default.
 
-`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`### data_ciphers_fallback
+`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`The AES-GCM family includes AES-192-GCM. Retained ciphers include the CBC,
+CFB, and OFB forms of AES, ARIA, Camellia, DES, Blowfish, and CAST5, the CBC,
+CFB, and OFB forms of SEED and SM4, and NONE. CFB and OFB are available only
+in TLS mode. Legacy ciphers provide weaker or no confidentiality and are not
+enabled by default.
+
+`AES-192-GCM``NONE`### data_ciphers_fallback
 
 Data channel cipher for peers that do not support cipher negotiation.
 
 Disabled by default.
+
+Only available in TLS mode.
 
 ### auth
 
@@ -8511,7 +9137,10 @@ OpenVPN data channel authentication digest.
 
 SHA1 is used by default. It only applies to non-AEAD data ciphers and tls_auth.
 
-`SHA1``tls_auth`### mss_fix
+`SHA1``tls_auth`Legacy digests including MD5 and RIPEMD160 remain available when explicitly
+configured for compatibility.
+
+`MD5``RIPEMD160`### mss_fix
 
 Maximum OpenVPN UDP packet size used to clamp the MSS of TCP connections sent through the tunnel.
 
@@ -8520,13 +9149,39 @@ This prevents TCP packets from exceeding the path MTU after OpenVPN encapsulatio
 When empty, the upstream OpenVPN default is used: fragment when configured,
 otherwise 1492 for the default tunnel MTU or the configured tunnel MTU.
 
-`fragment``1492`### fragment
+`fragment``1492`### mss_fix_disabled
+
+Disable MSS clamping, including the default clamp.
+
+Conflict with mss_fix and mss_fix_mode.
+
+`mss_fix``mss_fix_mode`### mss_fix_mode
+
+OpenVPN MSS calculation mode for an explicit mss_fix, one of mtu or fixed.
+
+`mss_fix``mtu``fixed`An empty value uses the normal OpenVPN encapsulation-aware calculation. mtu also accounts for the outer IP and UDP/TCP transport headers. fixed treats mss_fix as an inner IPv4 packet size.
+
+`mtu``fixed``mss_fix`Requires mss_fix.
+
+`mss_fix`### fragment
 
 Maximum OpenVPN UDP packet size used for OpenVPN data channel fragmentation.
 
 Disabled when 0. A non-zero value must be at least 68.
 
 `0``68`Conflict with TCP transport.
+
+### replay_window
+
+UDP data-channel replay window size. 64 is used by default. The maximum is 65536.
+
+`64``65536`TCP always requires strictly consecutive packet IDs.
+
+### replay_window_time
+
+UDP data-channel replay window duration. 15s is used by default and the maximum is 10m.
+
+`15s``10m`The value must use whole seconds.
 
 ### compression
 
@@ -8548,9 +9203,9 @@ Compression can weaken traffic confidentiality. Enable it only when required by 
 
 Policy for compression pushed by the server, one of no, asym, or yes.
 
-`no``asym``yes`no is used by default and permits only compression stub framing. asym accepts compressed packets from the server but does not compress outgoing packets. yes permits compression in both directions.
+`no``asym``yes`no is used by default and permits only compression stub framing. asym accepts compressed packets from the server but does not compress outgoing packets. For OpenVPN 2.7 compatibility, yes is accepted as a legacy alias for asym; the client never sends compressed packets.
 
-`no``asym``yes`Conflict with non-stub compression enabled by compression or compression_lzo when set to no.
+`no``asym``yes``asym`Conflict with non-stub compression enabled by compression or compression_lzo when set to no.
 
 `compression``compression_lzo``no`### route_no_pull
 
@@ -8585,9 +9240,12 @@ For example, route matches pushed IPv4 route options without matching route-gate
 
 `route``route-gateway`### routes
 
-IPv4 and IPv6 route prefixes routed through the OpenVPN endpoint.
+IPv4 and IPv6 prefixes preferred by sing-box routing for this OpenVPN endpoint.
 
 These routes are used in addition to routes accepted from the server.
+
+They do not install operating-system routes. Select the endpoint through
+sing-box route rules or its preferred-route behavior.
 
 ### route_gateway
 
@@ -8595,25 +9253,52 @@ IPv4 gateway for routes through the OpenVPN endpoint.
 
 When empty, the VPN gateway received from the server is used.
 
+The value is retained for OpenVPN configuration compatibility; endpoint route
+preference is prefix-based and does not install a system gateway route.
+
 ### route_metric
 
 Default metric for routes through the OpenVPN endpoint.
 
 The platform default is used when 0.
 
-`0`### redirect_gateway
+`0`The value is retained for OpenVPN configuration compatibility and does not
+install a system route.
 
-Route all IPv4 traffic through the OpenVPN endpoint.
+### redirect_gateway
+
+Prefer the OpenVPN endpoint for all IPv4 destinations in sing-box routing.
 
 Disabled by default.
+
+This does not install an operating-system default route.
 
 ### redirect_gateway_flags
 
 OpenVPN redirect-gateway flags.
 
-`redirect-gateway`!ipv4 disables the IPv4 default route, and ipv6 also routes all IPv6 traffic through the endpoint. Other OpenVPN flags are accepted for compatibility but do not change endpoint routing.
+`redirect-gateway`!ipv4 disables IPv4 preference, def1 represents it with two /1
+prefixes, and ipv6 also prefers the upstream-specific IPv6 prefixes. The
+OpenVPN control connection always uses its configured outbound dialer rather
+than endpoint routes, so local and autolocal require no system-route
+exception. bypass-dhcp and bypass-dns are not applicable because sing-box
+does not install pushed DHCP or DNS settings into the operating system.
+block-local is unsupported because the endpoint has no cross-platform source
+for the physical default gateway needed to preserve the gateway exception.
 
-`!ipv4``ipv6`Empty by default.
+`!ipv4``def1``/1``ipv6``local``autolocal``bypass-dhcp``bypass-dns``block-local`Empty by default.
+
+### redirect_private
+
+Accept redirect_gateway_flags without adding a default-route preference. Routes pushed or configured separately still affect the endpoint's preferred addresses, but no operating-system routes are installed.
+
+`redirect_gateway_flags`Disabled by default.
+
+### block_ipv6
+
+Reject IPv6 traffic locally instead of sending it through the VPN.
+
+Disabled by default.
 
 ### ping_interval
 
@@ -8636,13 +9321,41 @@ A server-pushed OpenVPN ping-restart value overrides this value.
 When empty, 120s is used for UDP connections with pull enabled until the
 server pushes another value. No default receive timeout is used for TCP.
 
-`120s`### renegotiate_interval
+`120s`### ping_restart_disabled
+
+Disable the initial 120s UDP pull timeout and any locally configured ping restart timeout.
+
+`120s`Conflict with ping_restart.
+
+`ping_restart`### renegotiate_interval
 
 OpenVPN TLS renegotiation interval.
 
 When empty, the OpenVPN default 1h is used.
 
-`1h`### explicit_exit_notify
+`1h`### renegotiate_disabled
+
+Disable time-based TLS renegotiation, including the default interval.
+
+Conflict with renegotiate_interval.
+
+`renegotiate_interval`### renegotiate_bytes
+
+Renegotiate data-channel keys after this many bytes. 0 uses the cipher-dependent OpenVPN default.
+
+`0`### renegotiate_packets
+
+Renegotiate data-channel keys after this many packets. 0 uses the cipher-dependent OpenVPN default.
+
+`0`### tls_timeout
+
+Initial retransmission timeout for TLS control packets. The OpenVPN default 2s is used when empty.
+
+`2s`### handshake_window
+
+Maximum time allowed for the initial TLS handshake and each renegotiation. The OpenVPN default 1m is used when empty.
+
+`1m`### explicit_exit_notify
 
 Number of OpenVPN exit notifications sent when closing a UDP connection.
 
@@ -8653,6 +9366,9 @@ Notifications are sent one second apart. Disabled when 0.
 Use a system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
+
+The endpoint configures interface addresses and MTU but does not install
+operating-system routes or DNS settings.
 
 If disabled, sing-box uses the internal network stack.
 
@@ -8703,9 +9419,14 @@ Since sing-box 1.14.0
   "system": false,
   "name": "",
   "mtu": 1500,
+  "mode": "tls",
   "network": "udp",
+  "remote": "",
+  "remote_port": 0,
   "max_clients": 1024,
   "address": [],
+  "peer_address": "",
+  "peer_address_ipv6": "",
   "topology": "subnet",
   "duplicate_cn": false,
   "users": [
@@ -8714,6 +9435,9 @@ Since sing-box 1.14.0
       "password": ""
     }
   ],
+  "static_key": [],
+  "static_key_path": "",
+  "key_direction": "",
   "tls": {
     "certificate": [],
     "certificate_path": "",
@@ -8722,6 +9446,19 @@ Since sing-box 1.14.0
     "client_certificate": [],
     "client_certificate_path": "",
     "verify_client_certificate": "require",
+    "client_name": "",
+    "client_name_type": "name",
+    "peer_fingerprint": [],
+    "crl_path": "",
+    "remote_certificate_ku": [],
+    "remote_certificate_eku": "",
+    "remote_certificate_tls": "",
+    "certificate_profile": "",
+    "ns_certificate_type": "",
+    "version_min": "1.2",
+    "version_max": "",
+    "cipher": "",
+    "groups": "",
     "control_wrap": {
       "type": "tls_crypt",
       "key": [],
@@ -8730,12 +9467,21 @@ Since sing-box 1.14.0
       "force_cookie": false
     }
   },
+  "cipher": "",
   "data_ciphers": [],
   "data_ciphers_fallback": "",
   "auth": "",
+  "mss_fix": 0,
+  "mss_fix_disabled": false,
+  "mss_fix_mode": "",
+  "replay_window": 0,
+  "replay_window_time": "",
   "push": {
     "routes": [],
     "dns": [],
+    "dns_servers": [],
+    "search_domains": [],
+    "dhcp_options": [],
     "redirect_gateway": false,
     "redirect_gateway_flags": [],
     "block_outside_dns": false,
@@ -8745,6 +9491,9 @@ Since sing-box 1.14.0
   "ping_interval": "",
   "ping_restart": "",
   "renegotiate_interval": "",
+  "renegotiate_disabled": false,
+  "renegotiate_bytes": 0,
+  "renegotiate_packets": 0,
   "handshake_window": "1m",
 
   ... // UDP NAT Fields
@@ -8766,6 +9515,9 @@ Use system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
 
+The endpoint configures interface addresses and MTU but does not install
+operating-system routes or DNS settings.
+
 If disabled, sing-box uses the internal network stack.
 
 ### name
@@ -8780,7 +9532,17 @@ OpenVPN interface MTU.
 
 1500 will be used by default.
 
-`1500`### network
+`1500`### mode
+
+OpenVPN session mode, one of tls or static_key.
+
+`tls``static_key`tls is used by default.
+
+`tls`static_key serves one peer without a TLS control channel or forward secrecy.
+It is retained as an explicit compatibility option for immutable deployments.
+It does not use tls, users, push options, or TLS renegotiation options.
+
+`static_key``tls``users`### network
 
 OpenVPN transport network, one of udp or tcp.
 
@@ -8790,13 +9552,28 @@ OpenVPN transport network, one of udp or tcp.
 configure two endpoints with separate address subnets,
 matching upstream OpenVPN which requires two server processes.
 
-`address`### max_clients
+`address`### remote
+
+Fixed remote peer address for a UDP static_key server.
+
+`static_key`Required with remote_port in UDP static_key mode. TCP servers accept the
+single peer from the listening socket and do not use this field.
+
+`remote_port``static_key`### remote_port
+
+Fixed remote peer port for a UDP static_key server.
+
+`static_key`Required with remote in UDP static_key mode.
+
+`remote``static_key`### max_clients
 
 Maximum number of established and pending TLS client sessions.
 
 1024 is used by default. The value must be smaller than 16777216, the size of the OpenVPN peer-id space.
 
-`1024``16777216`### address
+`1024``16777216`static_key mode supports one peer, so this value must be 0 or 1.
+
+`static_key``0``1`### address
 
 Required
 
@@ -8808,13 +9585,28 @@ The prefix address is assigned to the server interface. The masked prefix is use
 
 The first IPv4 and IPv6 prefix addresses are used as the endpoint's local addresses.
 
-### topology
+In static_key mode these are the local tunnel prefixes rather than address pools.
+
+`static_key`### peer_address
+
+IPv4 tunnel peer address.
+
+Required when an IPv4 address is configured in static_key mode.
+
+`address``static_key`### peer_address_ipv6
+
+IPv6 tunnel peer address.
+
+Required when an IPv6 address is configured in static_key mode.
+
+`address``static_key`### topology
 
 OpenVPN topology pushed to clients, one of subnet, p2p or net30.
 
-`subnet``p2p``net30`subnet will be used by default.
+`subnet``p2p``net30`subnet is used by default in TLS mode. p2p is used by default in
+static_key mode.
 
-`subnet`### duplicate_cn
+`subnet``p2p``static_key`### duplicate_cn
 
 Allow multiple active clients with the same authenticated certificate common name or username.
 
@@ -8822,13 +9614,17 @@ When disabled, a newly authenticated session replaces the existing session with 
 
 Disabled by default.
 
+Only available in TLS mode.
+
 ### users
 
 List of OpenVPN username/password users.
 
 If set, clients must pass username/password authentication in addition to any certificate policy configured by tls.verify_client_certificate.
 
-`tls.verify_client_certificate`### users.username
+`tls.verify_client_certificate`Only available in TLS mode.
+
+### users.username
 
 Username.
 
@@ -8836,9 +9632,34 @@ Username.
 
 Password.
 
-### tls
+### static_key
 
-Required
+OpenVPN static key content.
+
+Required in static_key mode.
+
+`static_key`Conflict with static_key_path.
+
+`static_key_path`### static_key_path
+
+OpenVPN static key path.
+
+Required in static_key mode when static_key is not set.
+
+`static_key``static_key`Conflict with static_key.
+
+`static_key`### key_direction
+
+Static key direction, one of server or client.
+
+`server``client`The key is used bidirectionally if empty. Conventionally the server uses
+server and the peer uses client.
+
+`server``client`Only available in static_key mode.
+
+`static_key`### tls
+
+Required in TLS mode.
 
 OpenVPN control channel TLS configuration.
 
@@ -8878,17 +9699,17 @@ Either tls.key or tls.key_path is required.
 
 TLS CA certificate content, used to verify client certificates.
 
-Either tls.client_certificate or tls.client_certificate_path is required.
+One of tls.client_certificate, tls.client_certificate_path, or tls.peer_fingerprint is required when tls.verify_client_certificate is require or optional.
 
-`tls.client_certificate``tls.client_certificate_path`Conflict with tls.client_certificate_path.
+`tls.client_certificate``tls.client_certificate_path``tls.peer_fingerprint``tls.verify_client_certificate``require``optional`Conflict with tls.client_certificate_path.
 
 `tls.client_certificate_path`### tls.client_certificate_path
 
 TLS CA certificate path, used to verify client certificates.
 
-Either tls.client_certificate or tls.client_certificate_path is required.
+One of tls.client_certificate, tls.client_certificate_path, or tls.peer_fingerprint is required when tls.verify_client_certificate is require or optional.
 
-`tls.client_certificate``tls.client_certificate_path`Conflict with tls.client_certificate.
+`tls.client_certificate``tls.client_certificate_path``tls.peer_fingerprint``tls.verify_client_certificate``require``optional`Conflict with tls.client_certificate.
 
 `tls.client_certificate`### tls.verify_client_certificate
 
@@ -8902,7 +9723,72 @@ OpenVPN client certificate policy, one of require, optional or none.
 
 `none`This field does not replace users; when users is set, username/password authentication is still required.
 
-`users``users`### tls.control_wrap
+`users``users`### tls.client_name
+
+Expected client certificate name. Disabled when empty.
+
+### tls.client_name_type
+
+Certificate field matched by tls.client_name, one of subject, name, or name-prefix.
+
+`tls.client_name``subject``name``name-prefix`name is used by default when tls.client_name is configured.
+
+`name``tls.client_name`### tls.peer_fingerprint
+
+Allowed SHA-256 fingerprints of client leaf certificates. Fingerprint-only verification can be used without a client CA.
+
+### tls.crl_path
+
+Path to a certificate revocation list used to reject revoked client certificates.
+
+### tls.remote_certificate_ku
+
+Required client certificate key usage masks in OpenVPN remote-cert-ku format.
+
+`remote-cert-ku`### tls.remote_certificate_eku
+
+Required client certificate extended key usage. Conflict with an explicitly configured tls.remote_certificate_tls.
+
+`tls.remote_certificate_tls`### tls.remote_certificate_tls
+
+Client certificate purpose check, one of server, client, or none. client is used by default.
+
+`server``client``none``client`### tls.certificate_profile
+
+Certificate profile, one of insecure, legacy, preferred, or suiteb.
+
+`insecure``legacy``preferred``suiteb`legacy is used by default.
+
+`legacy`insecure accepts MD5- and SHA-1-signed certificate chains and smaller legacy
+keys for compatibility with immutable peers. Use it only when the peer cannot
+be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
+requires stronger signatures and keys.
+
+`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites. Explicit tls.cipher and tls.groups values are not restricted by the profile.
+
+`suiteb``tls.cipher``tls.cipher``tls.groups`### tls.ns_certificate_type
+
+Deprecated Netscape certificate type check, one of server or client.
+
+`server``client`### tls.version_min
+
+Minimum TLS version. 1.2 is used by default.
+
+`1.2`### tls.version_max
+
+Maximum TLS version. The maximum supported version is used by default.
+
+### tls.cipher
+
+Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
+
+The default TLS cipher suites are used when empty. TLS 1.3 cipher suites are not controlled by this field.
+
+### tls.groups
+
+Colon-separated TLS key exchange groups in preference order.
+
+### tls.control_wrap
 
 OpenVPN control channel wrapping.
 
@@ -8953,13 +9839,31 @@ clients without cookie support are accepted using the upstream allow-noncookie b
 
 `tls.control_wrap.type``tls_crypt_v2``allow-noncookie`Disabled by default.
 
-### data_ciphers
+### cipher
+
+Data-channel cipher used in static_key mode.
+
+`static_key`The upstream static-key default BF-CBC is used when empty. Supported
+static-key ciphers are the AES-CBC, ARIA-CBC, Camellia-CBC, DES-CBC,
+Blowfish-CBC, CAST5-CBC families, SEED-CBC, SM4-CBC, and NONE.
+
+`BF-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode. NONE provides no confidentiality.
+
+`static_key``NONE`### data_ciphers
 
 Allowed OpenVPN data channel ciphers.
 
 AES-256-GCM, AES-128-GCM and CHACHA20-POLY1305 are used by default.
 
-`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`### data_ciphers_fallback
+`AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`The AES-GCM family includes AES-192-GCM. Retained ciphers include the CBC,
+CFB, and OFB forms of AES, ARIA, Camellia, DES, Blowfish, and CAST5, the CBC,
+CFB, and OFB forms of SEED and SM4, and NONE. CFB and OFB are available only
+in TLS mode. Legacy ciphers provide weaker or no confidentiality and are not
+enabled by default.
+
+`AES-192-GCM``NONE`Only available in TLS mode.
+
+### data_ciphers_fallback
 
 OpenVPN data channel cipher for legacy clients that do not support cipher negotiation.
 
@@ -8967,13 +9871,38 @@ Equivalent to OpenVPN data-ciphers-fallback.
 
 `data-ciphers-fallback`Disabled by default.
 
+Only available in TLS mode.
+
 ### auth
 
 OpenVPN data channel authentication digest.
 
 SHA1 will be used by default, matching the upstream default; it only applies to non-AEAD data ciphers and tls_auth.
 
-`SHA1``tls_auth`### push
+`SHA1``tls_auth`Legacy digests including MD5 and RIPEMD160 remain available when explicitly
+configured for compatibility.
+
+`MD5``RIPEMD160`### mss_fix
+
+Maximum encapsulated packet size used to clamp TCP MSS. The upstream default calculation uses 1492 with the default MTU.
+
+`1492`### mss_fix_disabled
+
+Disable MSS clamping, including the default clamp.
+
+### mss_fix_mode
+
+Calculation mode for an explicit mss_fix, one of mtu or fixed. Requires mss_fix.
+
+`mss_fix``mtu``fixed``mss_fix`### replay_window
+
+UDP data-channel replay window size. 64 is used by default; TCP packet IDs remain strictly consecutive.
+
+`64`### replay_window_time
+
+UDP replay window duration. 15s is used by default. The value must use whole seconds.
+
+`15s`### push
 
 Options pushed to clients.
 
@@ -8987,7 +9916,23 @@ IPv4 and IPv6 prefixes can be mixed.
 
 DNS server addresses to push to clients.
 
-### push.redirect_gateway
+Uses legacy dhcp-option DNS/DNS6. A pushed modern DNS server group overrides these addresses on compatible clients.
+
+`dhcp-option DNS``DNS6`### push.dns_servers
+
+Modern OpenVPN DNS server groups to push. Each entry contains priority, addresses, optional resolve_domains, dnssec, transport, and sni.
+
+`priority``addresses``resolve_domains``dnssec``transport``sni`Addresses accept an IP address or IP:port (IPv6 ports use [IPv6]:port). transport is one of plain, dot, or doh; dnssec is one of yes, optional, or no. OpenVPN clients apply only the group with the lowest priority number.
+
+`IP:port``[IPv6]:port``transport``plain``dot``doh``dnssec``yes``optional``no`### push.search_domains
+
+Modern OpenVPN search domains to push.
+
+### push.dhcp_options
+
+Additional legacy dhcp-option values to push, without the dhcp-option prefix.
+
+`dhcp-option``dhcp-option`### push.redirect_gateway
 
 Push redirect-gateway to clients, which routes client traffic through the VPN according to push.redirect_gateway_flags.
 
@@ -9053,13 +9998,35 @@ OpenVPN TLS renegotiation interval.
 
 When empty, the OpenVPN default 1h is used.
 
-`1h`### handshake_window
+`1h`Only available in TLS mode.
+
+### renegotiate_disabled
+
+Disable time-based TLS renegotiation, including the default interval.
+
+Only available in TLS mode.
+
+### renegotiate_bytes
+
+Renegotiate data-channel keys after this many bytes. 0 uses the cipher-dependent OpenVPN default.
+
+`0`Only available in TLS mode.
+
+### renegotiate_packets
+
+Renegotiate data-channel keys after this many packets. 0 uses the cipher-dependent OpenVPN default.
+
+`0`Only available in TLS mode.
+
+### handshake_window
 
 Maximum time allowed for the initial TLS handshake and each TLS renegotiation.
 
 1m is used by default.
 
-`1m`## UDP NAT Fields
+`1m`Only available in TLS mode.
+
+## UDP NAT Fields
 
 These fields configure UDP sessions for traffic through the OpenVPN interface.
 
@@ -20227,14 +21194,13 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 
 ##  Linker Flags
 
-The following -ldflags are used in official builds:
+The required linker flags for official builds are maintained in release/LDFLAGS. Downstream builds should use that file unchanged.
 
-`-ldflags`| Flag | Description | 
+`release/LDFLAGS`| Flag | Description | 
 | --- | --- |
-| -X 'internal/godebug.defaultGODEBUG=multipathtcp=0' | Go 1.24 enabled Multipath TCP for listeners by default (multipathtcp=2). This may cause errors on low-level sockets, and sing-box has its own MPTCP control (tcp_multi_path option). This flag disables the Go default. | 
 | -checklinkname=0 | Go 1.23+ linker rejects unauthorized go:linkname usage. This flag disables the check, required together with the badlinkname build tag. | 
 
-`-X 'internal/godebug.defaultGODEBUG=multipathtcp=0'``multipathtcp=2``tcp_multi_path``-checklinkname=0``go:linkname``badlinkname`##  For Downstream Packagers
+`-checklinkname=0``go:linkname``badlinkname`##  For Downstream Packagers
 
 The default build tag lists and linker flags are available as files in the repository for downstream packagers to reference directly:
 
