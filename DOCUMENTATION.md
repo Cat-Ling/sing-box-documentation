@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-23 02:36:03 UTC
+> Generated on: 2026-07-25 02:31:08 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -220,7 +220,50 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-alpha.50
+#### 1.14.0-beta.1
+
+- Correct undefined rule-set matching semantics 1
+- Add search domain rule items 2
+- Add parallel DNS response evaluation support 3
+- Fixes and improvements
+
+1:
+
+Rule-set matching has always been described as merged matching: fields of
+rule-set rules are considered merged into the referencing rule. However, this
+description is only intuitive when a rule-set contains only a single default
+rule without invert. Merged matching is now limited to exactly this case;
+any other referenced rule-set is matched as an other field, which matches
+when any of its rules matches on its own.
+Since the previous behavior in the corrected cases was effectively undefined,
+counterintuitive, and hard to understand, we do not consider this a breaking
+change — except for configurations that worked without their author
+understanding why.
+
+`default``invert``other field`2:
+
+The new DNS rule items
+domain_label_count and
+search_domain_available
+match the number of labels in the query name and whether a DNS server
+currently holds search domains; combined with racing, they allow unqualified
+name queries to race a server that can expand them against a public resolver.
+Additionally, preferred_by now
+matches search domain suffixes and supports local and dhcp servers.
+
+`domain_label_count``search_domain_available``racing``preferred_by``local``dhcp`3:
+
+The evaluate action can now assign
+a tag to each response, allowing multiple evaluated responses to coexist and
+be selected through tagged
+match_response rules. The new
+race field allows response-dependent
+rules to compete in parallel, with the first matching rule taking effect and
+the remaining queries canceled. The new speculative option can start
+evaluate and route queries while race rules are still pending, reducing
+latency at the cost of potentially unused queries.
+
+`evaluate``tag``match_response``race``speculative``evaluate``route`#### 1.14.0-alpha.50
 
 - Improve OpenVPN interoperability 1
 - Improve OpenConnect interoperability 2
@@ -5912,9 +5955,9 @@ The default rule uses the following matching logic:
 (source_port || source_port_range) &&
 other fields
 
-`domain``domain_suffix``domain_keyword``domain_regex``geosite``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, each branch inside an included rule-set can be considered merged into the outer rule, while different branches keep OR semantics.
+`domain``domain_suffix``domain_keyword``domain_regex``geosite``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`When a rule-set contains only a single default rule without invert, its fields are considered merged into the outer rule per the logic above; otherwise, it is matched as an other field; different rule-sets always keep OR semantics.
 
-#### inbound
+`invert``other field`#### inbound
 
 Tags of Inbound.
 
@@ -6202,9 +6245,13 @@ Enable response-based matching. When enabled, this rule matches against the eval
 (set by a preceding evaluate action)
 instead of only matching the original query.
 
-`evaluate`The evaluated response can also be returned directly by a later respond action.
+`evaluate`true or the tag of an evaluate action: true matches against the response of the latest
+evaluate action without tag; a tag matches against the response of the evaluate action with the tag.
 
-`respond`Required for Response Match Fields (response_rcode, response_answer, response_ns, response_extra).
+`true``tag``evaluate``true``evaluate``tag``evaluate`The evaluated response can also be returned directly by a later respond action;
+in a rule with a match_response tag, respond returns the tagged response.
+
+`respond``match_response``respond`Required for Response Match Fields (response_rcode, response_answer, response_ns, response_extra).
 Also required for ip_cidr, ip_is_private, and ip_accept_any when used with evaluate or Response Match Fields.
 
 `response_rcode``response_answer``response_ns``response_extra``ip_cidr``ip_is_private``ip_accept_any``evaluate`#### ip_accept_any
@@ -6370,6 +6417,8 @@ strategy
  respond
  disable_optimistic_cache
  timeout
+ race
+ speculative
 
 Changes in sing-box 1.12.0
 
@@ -6378,12 +6427,51 @@ strategy
 
 Since sing-box 1.11.0
 
-### route
+### Structure
+
+```
+{
+  "action": "",
+  "race": false,
+
+  ... // Action Fields
+}
+
+```
+
+#### action
+
+The action to perform. route will be used by default.
+
+`route`#### race
+
+Since sing-box 1.14.0
+
+Only available with route, respond, reject and predefined actions.
+
+`route``respond``reject``predefined`Requires match_response (for logical rules, in sub-rules).
+Conflict with speculative.
+
+`match_response``speculative`By default, rules are matched one after another in listed order: a rule with match_response
+waits for its referenced responses, and no later rule is matched until it has been judged.
+
+`match_response`A rule with race enabled does not hold this order: rule matching continues past it while its
+referenced responses are still pending, so the matching of race rules runs in parallel — with
+each other and with the rules after them. Each race rule is judged once its referenced
+responses are available, and the first race rule that matches terminates rule evaluation
+immediately; the remaining queries are canceled.
+
+`race`Rules without race still take effect strictly in listed order: while a preceding race rule is
+not yet judged, the action of any other matched rule is held until none of the race rules
+matched. The result may therefore depend on server speed only among race rules.
+
+`race`### route
 
 ```
 {
   "action": "route",  // default
   "server": "",
+  "speculative": false,
   "strategy": "",
   "disable_cache": false,
   "disable_optimistic_cache": false,
@@ -6402,7 +6490,20 @@ Required
 
 Tag of target server.
 
-#### strategy
+#### speculative
+
+Since sing-box 1.14.0
+
+Conflict with race. Has no effect without a preceding race rule.
+
+`race``race`By default, no query is sent in parallel with pending race rules: a matched route action
+holds its query until none of the race rules matched.
+
+`route`When speculative is enabled, the query is sent as soon as the rule matches, in parallel with
+the pending race rules, and may be wasted: its response is still used only after none of the
+race rules matched.
+
+`speculative`#### strategy
 
 Since sing-box 1.12.0
 
@@ -6452,6 +6553,8 @@ Since sing-box 1.14.0
 {
   "action": "evaluate",
   "server": "",
+  "tag": "",
+  "speculative": false,
   "disable_cache": false,
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
@@ -6476,7 +6579,26 @@ Required
 
 Tag of target server.
 
-#### disable_cache
+#### tag
+
+Tag of the evaluated response.
+
+A tagged response is only referenced via match_response with the tag;
+match_response: true references the response of the latest evaluate action without tag.
+
+`match_response``match_response: true``evaluate``tag`#### speculative
+
+Since sing-box 1.14.0
+
+Has no effect without a preceding race rule.
+
+`race`By default, no query is sent in parallel with pending race rules: a matched evaluate action
+holds its query, and rule matching stops there, until none of the race rules matched.
+
+`evaluate`When speculative is enabled, the query is sent as soon as the rule matches, in parallel with
+the pending race rules, and may be wasted: rule matching continues without waiting for them.
+
+`speculative`#### disable_cache
 
 Disable cache and save cache in this query.
 
@@ -6519,7 +6641,7 @@ Since sing-box 1.14.0
 
 respond terminates rule evaluation and returns the evaluated response from a preceding evaluate action.
 
-`respond``evaluate`This action does not send a new DNS query and has no extra options.
+`respond``evaluate`This action does not send a new DNS query.
 
 Only allowed after a preceding top-level evaluate rule. If the action is reached without an evaluated response at runtime, the request fails with an error instead of falling through to later rules.
 
@@ -8417,9 +8539,9 @@ Disable AnyConnect XML POST authentication and start authentication with the leg
 
 ### external_auth_disabled
 
-Disable external browser authentication such as SSO and SAML for AnyConnect and GlobalProtect.
+Disable external browser authentication such as SSO and SAML for AnyConnect, GlobalProtect, and Fortinet.
 
-When enabled, external authentication is not advertised to the server and an unexpected external authentication request is rejected.
+When enabled, external authentication is not advertised for AnyConnect or GlobalProtect, and any unexpected external authentication request, including Fortinet SAML, is rejected.
 
 ### password_authentication_disabled
 
@@ -15922,9 +16044,9 @@ The default rule uses the following matching logic:
 (source_port || source_port_range) &&
 other fields
 
-`domain``domain_suffix``domain_keyword``domain_regex``geosite``geoip``ip_cidr``ip_is_private``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`Additionally, each branch inside an included rule-set can be considered merged into the outer rule, while different branches keep OR semantics.
+`domain``domain_suffix``domain_keyword``domain_regex``geosite``geoip``ip_cidr``ip_is_private``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`When a rule-set contains only a single default rule without invert, its fields are considered merged into the outer rule per the logic above; otherwise, it is matched as an other field; different rule-sets always keep OR semantics.
 
-#### inbound
+`invert``other field`#### inbound
 
 Tags of Inbound.
 
