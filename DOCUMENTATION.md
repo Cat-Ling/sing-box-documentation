@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-07-25 02:31:08 UTC
+> Generated on: 2026-07-27 02:46:21 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -31,6 +31,7 @@
 - [AdGuard DNS Filer](#adguard-dns-filer)
 - [Headless Rule](#headless-rule)
 - [Source Format](#source-format)
+- [JSON Schema](#json-schema)
 - [Service](#service)
 - [sing-box API](#sing-box-api)
 - [CCM](#ccm)
@@ -219,6 +220,22 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-beta.2
+
+- Add JSON Schema support 1
+- Fixes and improvements
+
+1:
+
+sing-box now provides a JSON Schema for its configuration, enabling completion
+and validation in compatible editors. The schema published with the
+documentation can be selected with the new top-level $schema field, while
+the new sing-box schema command generates a schema matching the current
+binary and its build tags.
+
+`$schema``sing-box schema`We have also improved the JSON editor experience in the graphical clients on
+macOS, Android, Windows, and Linux, and added schema-based completion support.
 
 #### 1.14.0-beta.1
 
@@ -5408,6 +5425,7 @@ sing-box uses JSON for configuration files.
 
 ```
 {
+  "$schema": "https://sing-box.sagernet.org/schema.json",
   "log": {},
   "dns": {},
   "ntp": {},
@@ -5429,6 +5447,7 @@ sing-box uses JSON for configuration files.
 
 | Key | Format | 
 | --- | --- |
+| $schema | JSON Schema | 
 | log | Log | 
 | dns | DNS | 
 | ntp | NTP | 
@@ -5443,7 +5462,7 @@ sing-box uses JSON for configuration files.
 | services | Service | 
 | experimental | Experimental | 
 
-`log``dns``ntp``certificate``certificate_providers``http_clients``network_namespaces``endpoints``inbounds``outbounds``route``services``experimental`### Check
+`$schema``log``dns``ntp``certificate``certificate_providers``http_clients``network_namespaces``endpoints``inbounds``outbounds``route``services``experimental`### Check
 
 ```
 sing-box check
@@ -16778,6 +16797,7 @@ Changes in sing-box 1.14.0
 http_client
  download_detour
  tag
+ initial_path
 
 Changes in sing-box 1.10.0
 
@@ -16818,6 +16838,7 @@ Remote rule-set will be cached if experimental.cache_file.enabled.
   "tag": "", // or []
   "format": "source", // or binary
   "url": "",
+  "initial_path": "",
   "http_client": "", // or {}
   "update_interval": "",
 
@@ -16846,10 +16867,10 @@ Since sing-box 1.14.0
 
 tag also accepts a list of tags to define multiple rule-sets sharing other options at once.
 
-`tag`The {tag} placeholder in path or url is replaced by each tag,
+`tag`The {tag} placeholder in path, url or initial_path is replaced by each tag,
 and is required when multiple tags are set.
 
-`{tag}``path``url`Multiple tags conflict with type: inline.
+`{tag}``path``url``initial_path`Multiple tags conflict with type: inline.
 
 `type: inline`### Inline Fields
 
@@ -16888,6 +16909,16 @@ File path of rule-set.
 Required
 
 Download URL of rule-set.
+
+#### initial_path
+
+Since sing-box 1.14.0
+
+File path of the initial rule-set content.
+
+Read once at startup when no cached rule-set is available, so startup is not
+blocked by the initial download. The rule-set is still updated in the background
+immediately after startup.
 
 #### http_client
 
@@ -17363,6 +17394,60 @@ Version of rule-set.
 Required
 
 List of Headless Rule.
+
+
+---
+
+## JSON Schema
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/schema/>
+
+Since sing-box 1.14.0
+
+# JSON Schema
+
+sing-box provides a JSON Schema Draft 2020-12 for configuration files.
+Compatible editors can use it for completion and validation.
+
+### Structure
+
+```
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json"
+}
+
+```
+
+### Fields
+
+#### $schema
+
+The schema URI used by compatible editors.
+This field does not affect sing-box runtime behavior.
+
+The schema published with this documentation is available at
+sing-box.sagernet.org/schema.json.
+
+### Generate
+
+Use the following command to generate a schema matching the installed binary:
+
+```
+sing-box schema -o schema.json
+
+```
+
+Without --output, the schema is written to standard output.
+The generated schema reflects the features included in the current build.
+
+`--output`You can then reference the local schema from a configuration file:
+
+```
+{
+  "$schema": "./schema.json"
+}
+
+```
 
 
 ---
