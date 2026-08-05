@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-03 02:39:06 UTC
+> Generated on: 2026-08-05 02:23:39 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -149,6 +149,7 @@
 
 ### Manual
 
+- [AnyTLS client metadata](#anytls-client-metadata)
 - [TunnelVision](#tunnelvision)
 - [Hysteria 2](#hysteria-2)
 - [Shadowsocks](#shadowsocks)
@@ -221,7 +222,50 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-beta.3
+#### 1.14.0-beta.6
+
+- Add Hysteria2 Chrome QUIC fingerprint parroting 1
+- Update quic-go to v0.61.0
+- Update tailscale to v1.102.1
+- Update gvisor to 20260727.0
+- Fixes and improvements
+
+1:
+
+Hysteria2 client connections now parrot Chrome's QUIC handshake by default,
+making the traffic harder to identify by handshake fingerprinting. Since
+Chrome does not declare support for Ed25519, servers using Ed25519
+certificates will fail the handshake; see
+disable_chrome_parrot.
+
+#### 1.14.0-beta.5
+
+- Remove client metadata from AnyTLS requests by default 1
+- Update naiveproxy to v150.0.7871.63-1
+- Fixes and improvements
+
+1:
+
+We found that the AnyTLS client implementation uploads metadata that is
+not used by the open-source server, and there are reports of vendors using
+it to profile and discriminate against users. We now leave it empty by default
+and allow you to customize it, see
+AnyTLS client metadata.
+
+#### 1.13.16
+
+- Remove client metadata from AnyTLS requests by default 1
+- Fixes and improvements
+
+1:
+
+We found that the AnyTLS client implementation uploads metadata that is
+not used by the open-source server, and there are reports of vendors using
+it to profile and discriminate against users. We now leave it empty by default
+and allow you to customize it, see
+AnyTLS client metadata.
+
+#### 1.14.0-beta.4
 
 - Fixes and improvements
 
@@ -13482,6 +13526,7 @@ Since sing-box 1.12.0
   "idle_session_check_interval": "30s",
   "idle_session_timeout": "30s",
   "min_idle_session": 5,
+  "client_metadata": "",
   "tls": {},
 
   ... // Dial Fields
@@ -13521,7 +13566,13 @@ In the check, close sessions that have been idle for longer than this. Default: 
 
 In the check, at least the first n idle sessions are kept open. Default value: n=0
 
-`n``n`#### tls
+`n``n`#### client_metadata
+
+Since sing-box 1.13.16
+
+Check AnyTLS client metadata.
+
+#### tls
 
 Required
 
@@ -13960,6 +14011,7 @@ Changes in sing-box 1.14.0
 
 hop_interval_max
  bbr_profile
+ disable_chrome_parrot
  realm
  obfs
 
@@ -13996,6 +14048,7 @@ server_ports
 
   "bbr_profile": "",
   "brutal_debug": false,
+  "disable_chrome_parrot": false,
   "realm": {
     "server_url": "https://realm.example.com",
     "token": "",
@@ -14134,6 +14187,23 @@ BBR congestion control algorithm profile, one of conservative standard aggressiv
 `standard`#### brutal_debug
 
 Enable debug information logging for Hysteria Brutal CC.
+
+#### disable_chrome_parrot
+
+Since sing-box 1.14.0
+
+Disable Chrome QUIC fingerprint parroting.
+
+If it is not disabled, the client's QUIC handshake is made to parrot Chrome's, so that Hysteria traffic
+is harder to identify by handshake fingerprinting.
+
+To match Chrome, the client uses Chrome's own QUIC parameters, which override some settings:
+idle_timeout is fixed at 30 seconds, max_concurrent_streams and initial_packet_size are replaced by
+Chrome's values, and the receive windows start at Chrome's initial values before growing to the configured
+maximums.
+
+`idle_timeout``max_concurrent_streams``initial_packet_size`Chrome does not declare support for Ed25519, so a server using an Ed25519 certificate will fail the
+handshake. Use an ECDSA or RSA certificate instead; certificates issued by ACME are unaffected.
 
 #### realm
 
@@ -21627,6 +21697,77 @@ you can manage the service using the following command:
 | New Logs | sudo journalctl -u sing-box --output cat -f | 
 
 `sudo systemctl enable sing-box``sudo systemctl disable sing-box``sudo systemctl start sing-box``sudo systemctl stop sing-box``sudo systemctl kill sing-box``sudo systemctl restart sing-box``sudo journalctl -u sing-box --output cat -e``sudo journalctl -u sing-box --output cat -f`
+---
+
+## AnyTLS client metadata
+
+**Source URL**: <https://sing-box.sagernet.org/manual/misc/anytls-client-metadata/>
+
+# AnyTLS client metadata
+
+The AnyTLS protocol has a design flaw: its settings frame requires the client
+to send its software name and version to the server, and the protocol
+specification requires that clients not disguise this information.
+
+This field serves no protocol purpose — AnyTLS already has a separate version
+field for compatibility negotiation, and the open-source server implementation
+does not use client metadata. However, the field allows vendors to collect and track client types, and for
+platform-specific clients, potentially infer private information such as the operating system type and version range —
+something that should not, and is not expected by users to, appear in an
+anti-censorship protocol. We have received reports that
+commercial proxy providers use this information to identify and block
+connections from the official library provided by AnyTLS for sing-box
+integration, reportedly because abusive users connect to their servers with
+sing-box or with clients using the same official library. This indicates that
+client metadata is being collected and used for discrimination in practice.
+
+The protocol specification states that "disguising it has no value." We
+disagree: the situation is analogous to browsers implementing TLS ECH GREASE —
+without it, privacy-protecting clients can be fingerprinted and treated
+differently.
+
+## Status
+
+### 2025-02-20
+
+We merged the
+pull request adding this protocol.
+Since the metadata was fixed at sing-anytls/<library version> in the
+implementation provided for our use, and we did not carefully review the
+protocol specification and other implementations, we wrongly believed that it
+was not private information.
+
+`sing-anytls/<library version>`### 2025-04-05
+
+The protocol document
+added
+the requirement that third-party implementations fill in the real software
+name and version, claiming that "disguising it has no value".
+
+### 2026-07-18
+
+A pull request submitted to sing-box
+was found to additionally upload the sing-box name and the actual version;
+the change was subsequently reverted and was never released.
+
+`sing-box`### 2026-08-03
+
+sing-box 1.13.16 and 1.14.0-beta.5 have been released; the client metadata in
+AnyTLS requests is now empty by default. For compatibility, the
+client_metadata outbound
+option allows users to set a custom value.
+
+Since the open-source server implementation does not use this information and
+it has no legitimate use, this is not considered a breaking change.
+
+## Recommendations
+
+We recommend that the AnyTLS protocol remove the client metadata, or replace
+it with an option that is not sent by default and can be customized by the
+user; and that other client implementations also take action, to jointly stop
+statistics collection and discrimination based on client metadata.
+
+
 ---
 
 ## TunnelVision
