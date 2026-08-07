@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-05 02:23:39 UTC
+> Generated on: 2026-08-07 02:35:57 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -222,7 +222,11 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-beta.6
+#### 1.14.0-beta.8
+
+- Fixes and improvements
+
+#### 1.14.0-beta.7
 
 - Add Hysteria2 Chrome QUIC fingerprint parroting 1
 - Update quic-go to v0.61.0
