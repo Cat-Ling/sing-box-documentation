@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-09 01:30:46 UTC
+> Generated on: 2026-08-11 01:30:04 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -221,6 +221,15 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-beta.13
+
+- Fixes and improvements
+
+#### 1.13.18
+
+- Update naiveproxy to v150.0.7871.63-1
+- Fixes and improvements
 
 #### 1.14.0-beta.10
 
