@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-15 01:08:27 UTC
+> Generated on: 2026-08-17 01:09:42 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -222,7 +222,30 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-beta.14
+#### 1.14.0-beta.15
+
+- Add api command 1
+- Add Taildrop support 2
+- Add listen_port option to Tailscale endpoint
+- Fixes and improvements
+
+`api``listen_port`1:
+
+The new sing-box api command is a CLI client for the
+API service, providing the same operations
+available in graphical clients and the Dashboard.
+
+`sing-box api`2:
+
+Tailscale endpoints now support
+Taildrop, the Tailscale file
+sharing feature. Received files are stored in the directory configured by
+the new
+taildrop_directory
+option (Taildrop by default). Files can be sent and managed through the
+graphical clients, the Dashboard, or the new sing-box api command.
+
+`taildrop_directory``Taildrop``sing-box api`#### 1.14.0-beta.14
 
 - Fixes and improvements
 
@@ -5815,6 +5838,8 @@ source_mac_address
  response_ns
  response_extra
  package_name_regex
+ query_client_subnet
+ query_dnssec
  ip_version
  query_type
 
@@ -5878,6 +5903,11 @@ rule_set
           "HTTPS",
           32768
         ],
+        "query_client_subnet": [
+          "10.0.0.0/24",
+          "192.168.0.1"
+        ],
+        "query_dnssec": false,
         "network": "tcp",
         "auth_user": [
           "usera",
@@ -6089,7 +6119,23 @@ action and match_response.
 
 `strategy``rule_set_ip_cidr_accept_empty``evaluate``match_response`DNS query type. Values can be integers or type name strings.
 
-#### network
+#### query_client_subnet
+
+Since sing-box 1.14.0
+
+Match the edns0-subnet OPT extra record (EDNS Client Subnet) in the query.
+
+`edns0-subnet`A listed prefix matches when it is no more specific than the received client subnet and contains its address.
+
+If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
+
+`/32``/128`#### query_dnssec
+
+Since sing-box 1.14.0
+
+Match queries with the DNSSEC OK (DO) bit set.
+
+`DO`#### network
 
 tcp or udp.
 
@@ -6503,6 +6549,7 @@ strategy
  timeout
  race
  speculative
+ remove_client_subnet
 
 Changes in sing-box 1.12.0
 
@@ -6561,7 +6608,8 @@ matched. The result may therefore depend on server speed only among race rules.
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "timeout": "",
-  "client_subnet": null
+  "client_subnet": null,
+  "remove_client_subnet": false
 }
 
 ```
@@ -6629,7 +6677,15 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `/32``/128`Will override dns.client_subnet.
 
-`dns.client_subnet`### evaluate
+`dns.client_subnet`#### remove_client_subnet
+
+Since sing-box 1.14.0
+
+Remove the edns0-subnet OPT extra record from the query, and suppress dns.client_subnet.
+
+`edns0-subnet``dns.client_subnet`Conflict with client_subnet.
+
+`client_subnet`### evaluate
 
 Since sing-box 1.14.0
 
@@ -6643,7 +6699,8 @@ Since sing-box 1.14.0
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "timeout": "",
-  "client_subnet": null
+  "client_subnet": null,
+  "remove_client_subnet": false
 }
 
 ```
@@ -6712,7 +6769,15 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `/32``/128`Will override dns.client_subnet.
 
-`dns.client_subnet`### respond
+`dns.client_subnet`#### remove_client_subnet
+
+Since sing-box 1.14.0
+
+Remove the edns0-subnet OPT extra record from the query, and suppress dns.client_subnet.
+
+`edns0-subnet``dns.client_subnet`Conflict with client_subnet.
+
+`client_subnet`### respond
 
 Since sing-box 1.14.0
 
@@ -6738,7 +6803,8 @@ Only allowed after a preceding top-level evaluate rule. If the action is reached
   "disable_optimistic_cache": false,
   "rewrite_ttl": null,
   "timeout": "",
-  "client_subnet": null
+  "client_subnet": null,
+  "remove_client_subnet": false
 }
 
 ```
@@ -10249,7 +10315,9 @@ See UDP NAT Fields for details.
 
 Changes in sing-box 1.14.0
 
-ssh_server
+listen_port
+ ssh_server
+ taildrop_directory
 
 Changes in sing-box 1.13.0
 
@@ -10279,6 +10347,7 @@ Since sing-box 1.12.0
   "advertise_routes": [],
   "advertise_exit_node": false,
   "advertise_tags": [],
+  "listen_port": 0,
   "relay_server_port": 0,
   "relay_server_static_endpoints": [],
   "system_interface": false,
@@ -10286,6 +10355,7 @@ Since sing-box 1.12.0
   "system_interface_mtu": 0,
   "udp_timeout": "5m",
   "ssh_server": false,
+  "taildrop_directory": "",
 
   ... // Dial Fields
 }
@@ -10367,7 +10437,15 @@ Tags to advertise for this node, for ACL enforcement purposes.
 
 Example: ["tag:server"]
 
-`["tag:server"]`#### relay_server_port
+`["tag:server"]`#### listen_port
+
+Since sing-box 1.14.0
+
+The UDP port to listen on for WireGuard and peer-to-peer traffic.
+
+A port is automatically selected by default.
+
+#### relay_server_port
 
 Since sing-box 1.13.0
 
@@ -10414,7 +10492,7 @@ Access is controlled by the SSH ACL in the Tailscale admin console, which maps e
 - Linux and macOS: the user is resolved from the system user database. Switching to a user other than the one sing-box runs as requires running as root; without root, sessions are limited to the current user.
 - Windows: in the command line client, sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused. In the graphical client, there is no such restriction.
 - Android: the user is resolved by the app rather than the system user database. root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory, so the target application must be installed. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access; without root, sessions are limited to the sing-box user.
-- macOS: the SSH server is only available in the standalone version and requires the Root Helper; the App Store version is not supported.
+- macOS: the SSH server is only available in the standalone version and requires the Helper Service; the App Store version is not supported.
 - iOS: the SSH server is only available in the jailbreak build; the App Store and TestFlight versions are not supported.
 - tvOS: not yet supported.
 
@@ -10448,7 +10526,18 @@ Refuse the SFTP subsystem.
 
 Refuse local and remote TCP and Unix-socket forwarding, including SSH agent forwarding.
 
-### Dial Fields
+#### taildrop_directory
+
+Since sing-box 1.14.0
+
+The directory where files received from tailnet peers are stored.
+
+Relative paths are resolved against the working directory, as state_directory
+is.
+
+Taildrop is used by default.
+
+`Taildrop`### Dial Fields
 
 Note
 
@@ -13632,7 +13721,7 @@ Since sing-box 1.14.0
 Requires privileges. Supported on Linux, macOS, Windows, rooted Android, and jailbroken iOS.
 
 For graphical clients: on macOS, only available in the standalone version and requires the
-Root Helper; on Android, requires root permission; on iOS, requires jailbreak.
+Helper Service; on Android, requires root permission; on iOS, requires jailbreak.
 
 bridge is the L3 counterpart of the direct outbound: it forwards L3 connections
 (TCP, UDP and ICMP) directly out of a network interface. Route L3 traffic to it from a TUN
