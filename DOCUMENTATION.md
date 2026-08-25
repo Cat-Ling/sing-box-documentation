@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-23 01:13:58 UTC
+> Generated on: 2026-08-25 01:10:10 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -222,7 +222,7 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.14.0-beta.17
+#### 1.14.0-rc.1
 
 - Fixes and improvements
 
@@ -6075,13 +6075,13 @@ You can ignore the JSON Array [] tag when the content is only one item
 ### Default Fields
 
 The default rule uses the following matching logic:
-(domain || domain_suffix || domain_keyword || domain_regex || geosite) &&
+(domain || domain_suffix || domain_keyword || domain_regex || geosite || ip_cidr || ip_is_private || ip_accept_any) &&
 (port || port_range) &&
-(source_geoip || source_ip_cidr ｜｜ source_ip_is_private) &&
+(source_geoip || source_ip_cidr || source_ip_is_private) &&
 (source_port || source_port_range) &&
 other fields
 
-`domain``domain_suffix``domain_keyword``domain_regex``geosite``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`When a rule-set contains only a single default rule without invert, its fields are considered merged into the outer rule per the logic above; otherwise, it is matched as an other field; different rule-sets always keep OR semantics.
+`domain``domain_suffix``domain_keyword``domain_regex``geosite``ip_cidr``ip_is_private``ip_accept_any``port``port_range``source_geoip``source_ip_cidr``source_ip_is_private``source_port``source_port_range``other fields`When a rule-set contains only a single default rule without invert, its fields are considered merged into the outer rule per the logic above; otherwise, it is matched as an other field; different rule-sets always keep OR semantics.
 
 `invert``other field`#### inbound
 
@@ -14421,9 +14421,11 @@ Since sing-box 1.13.0
   "password": "password",
   "insecure_concurrency": 0,
   "extra_headers": {},
+  "stream_receive_window": "",
   "udp_over_tcp": false | {},
   "quic": false,
   "quic_congestion_control": "",
+  "quic_session_receive_window": "",
   "tls": {},
 
   ... // Dial Fields
@@ -14483,7 +14485,15 @@ Number of concurrent tunnel connections. Multiple connections make the tunneling
 
 Extra headers to send in HTTP requests.
 
-#### udp_over_tcp
+#### stream_receive_window
+
+The flow control window.
+
+When quic is enabled, it sets the initial QUIC stream receive window, and 6 MB is used by default.
+
+`quic``6 MB`Otherwise, it sets the HTTP/2 session receive window, the stream receive window is set to half of it, and 4 MB is used by default on iOS, 128 MB on other platforms.
+
+`4 MB``128 MB`#### udp_over_tcp
 
 UDP over TCP protocol settings.
 
@@ -14506,7 +14516,15 @@ QUIC congestion control algorithm.
 
 `bbr``bbr2``cubic``reno`bbr is used by default (the default of QUICHE, used by Chromium which NaiveProxy is based on).
 
-`bbr`#### tls
+`bbr`#### quic_session_receive_window
+
+Only used when quic is enabled.
+
+`quic`The initial QUIC session receive window.
+
+15 MB is used by default.
+
+`15 MB`#### tls
 
 Required
 
