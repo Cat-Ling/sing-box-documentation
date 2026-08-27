@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-25 01:10:10 UTC
+> Generated on: 2026-08-27 07:21:57 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
