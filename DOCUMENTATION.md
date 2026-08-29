@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-08-27 07:21:57 UTC
+> Generated on: 2026-08-29 05:42:11 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -221,6 +221,16 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.14.0-rc.2
+
+- Migrate Apple platform clients to a new Apple developer account 1
+- Fixes and improvements
+
+1:
+
+For the macOS standalone client, profiles and settings are not inherited, see
+Migration.
 
 #### 1.14.0-rc.1
 
@@ -11901,13 +11911,10 @@ QUIC congestion control algorithm.
 | Algorithm | Description | 
 | --- | --- |
 | bbr | BBR | 
-| bbr_standard | BBR (Standard version) | 
-| bbr2 | BBRv2 | 
-| bbr2_variant | BBRv2 (An experimental variant) | 
 | cubic | CUBIC | 
 | reno | New Reno | 
 
-`bbr``bbr_standard``bbr2``bbr2_variant``cubic``reno`bbr is used by default (the default of QUICHE, used by Chromium which NaiveProxy is based on).
+`bbr``cubic``reno`bbr is used by default.
 
 `bbr`#### tls
 
@@ -14514,9 +14521,9 @@ QUIC congestion control algorithm.
 | cubic | CUBIC | 
 | reno | New Reno | 
 
-`bbr``bbr2``cubic``reno`bbr is used by default (the default of QUICHE, used by Chromium which NaiveProxy is based on).
+`bbr``bbr2``cubic``reno`cubic is used by default (the default of Chromium, which NaiveProxy is based on).
 
-`bbr`#### quic_session_receive_window
+`cubic`#### quic_session_receive_window
 
 Only used when quic is enabled.
 
@@ -22962,6 +22969,19 @@ of recommended protocols for bypassing GFW.
 # Migration
 
 ## 1.14.0
+
+### Migrate the macOS standalone client data
+
+Apple platform clients migrated to a new Apple developer account, so the macOS standalone client
+is a new application, and profiles and settings are not inherited.
+
+Before starting sing-box 1.14.0-rc.2 or later, they can be migrated using the following command:
+
+```
+mv ~/Library/Group\ Containers/287TTNZF8L.io.nekohasekai.sfavt \
+  ~/Library/Group\ Containers/P8XK3KHB48.io.nekohasekai.sfamt
+
+```
 
 ### Migrate inline ACME to certificate provider
 
