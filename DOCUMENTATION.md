@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-03 03:00:34 UTC
+> Generated on: 2026-09-05 03:00:36 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -221,6 +221,36 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.1
+
+- Implement fully functional auto_redirect for Android 1
+- Add on_demand endpoint option 2
+- Add cache file write buffering 3
+- Fixes and improvements
+
+`auto_redirect``on_demand`1:
+
+auto_redirect is now fully supported on Android through the root service of the graphical client
+or a root shell.
+
+`auto_redirect`See TUN.
+
+2:
+
+Allow the endpoint to be disconnected when necessary.
+
+See WireGuard,
+Tailscale,
+OpenVPN Client and
+OpenConnect.
+
+3:
+
+Changes to the cache file are now collected in a write buffer and committed in one transaction
+when the buffer is full, on memory pressure, or when sing-box exits.
+
+See Cache File.
 
 #### 1.14.0
 
@@ -8785,6 +8815,10 @@ The tag of the endpoint.
 
 Since sing-box 1.14.0
 
+Changes in sing-box 1.15.0
+
+on_demand
+
 Client only
 
 ## Structure
@@ -8890,6 +8924,7 @@ Client only
       "promote": false
     }
   ],
+  "on_demand": false,
 
   ... // Dial Fields
 }
@@ -9416,7 +9451,13 @@ Ask for the matching authentication field interactively instead of supplying an 
 
 Conflict with form_entries.value.
 
-`form_entries.value`## UDP NAT Fields
+`form_entries.value`### on_demand
+
+Since sing-box 1.15.0
+
+Allow the endpoint to be disconnected when necessary.
+
+## UDP NAT Fields
 
 See UDP NAT Fields for details.
 
@@ -9442,6 +9483,10 @@ Pushed DNS settings are not installed into the operating system. Configure an Op
 # OpenVPN Client
 
 Since sing-box 1.14.0
+
+Changes in sing-box 1.15.0
+
+on_demand
 
 ## Structure
 
@@ -9541,6 +9586,7 @@ Since sing-box 1.14.0
   "system": false,
   "name": "",
   "mtu": 1500,
+  "on_demand": false,
 
   ... // UDP NAT Fields
 
@@ -10164,7 +10210,13 @@ OpenVPN interface MTU.
 
 When empty, 1500 is used until a server-pushed MTU is received.
 
-`1500`## UDP NAT Fields
+`1500`### on_demand
+
+Since sing-box 1.15.0
+
+Allow the endpoint to be disconnected when necessary.
+
+## UDP NAT Fields
 
 See UDP NAT Fields for details.
 
@@ -10821,6 +10873,10 @@ See UDP NAT Fields for details.
 
 # Tailscale
 
+Changes in sing-box 1.15.0
+
+on_demand
+
 Changes in sing-box 1.14.0
 
 listen_port
@@ -10864,6 +10920,7 @@ Since sing-box 1.12.0
   "udp_timeout": "5m",
   "ssh_server": false,
   "taildrop_directory": "",
+  "on_demand": false,
 
   ... // Dial Fields
 }
@@ -11045,7 +11102,13 @@ is.
 
 Taildrop is used by default.
 
-`Taildrop`### Dial Fields
+`Taildrop`#### on_demand
+
+Since sing-box 1.15.0
+
+Allow the endpoint to be disconnected when necessary.
+
+### Dial Fields
 
 Note
 
@@ -11065,6 +11128,10 @@ Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client
 **Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/wireguard/>
 
 # WireGuard
+
+Changes in sing-box 1.15.0
+
+on_demand
 
 Changes in sing-box 1.14.0
 
@@ -11102,6 +11169,7 @@ Since sing-box 1.11.0
   ... // UDP NAT Fields
 
   "workers": 0,
+  "on_demand": false,
 
   ... // Dial Fields
 }
@@ -11194,6 +11262,12 @@ WireGuard worker count.
 
 CPU count is used by default.
 
+#### on_demand
+
+Since sing-box 1.15.0
+
+Allow the endpoint to be disconnected when necessary.
+
 ### UDP NAT Fields
 
 See UDP NAT Fields for details.
@@ -11248,9 +11322,15 @@ cache_file
 
 Since sing-box 1.8.0
 
+Changes in sing-box 1.15.0
+
+buffer_size
+ flush_interval
+
 Changes in sing-box 1.14.0
 
 store_rdrc
+ rdrc_timeout
  store_dns
 
 Changes in sing-box 1.9.0
@@ -11268,7 +11348,9 @@ store_rdrc
   "store_fakeip": false,
   "store_rdrc": false,
   "rdrc_timeout": "",
-  "store_dns": false
+  "store_dns": false,
+  "buffer_size": "",
+  "flush_interval": ""
 }
 
 ```
@@ -11308,7 +11390,11 @@ will be cached until expiration.
 
 #### rdrc_timeout
 
-Timeout of rejected DNS response cache.
+Deprecated in sing-box 1.14.0
+
+rdrc_timeout is deprecated and will be removed in sing-box 1.16.0, check Migration.
+
+`rdrc_timeout`Timeout of rejected DNS response cache.
 
 7d is used by default.
 
@@ -11317,6 +11403,22 @@ Timeout of rejected DNS response cache.
 Since sing-box 1.14.0
 
 Store DNS cache in the cache file.
+
+#### buffer_size
+
+Since sing-box 1.15.0
+
+Size of the write buffer.
+
+1MB is used by default.
+
+`1MB`#### flush_interval
+
+Since sing-box 1.15.0
+
+Interval for flushing the write buffer automatically.
+
+Disabled by default.
 
 
 ---
@@ -13031,6 +13133,10 @@ See QUIC Fields for details.
 
 # Tun
 
+Changes in sing-box 1.15.0
+
+auto_redirect_tproxy_mark
+
 Changes in sing-box 1.14.0
 
 include_mac_address
@@ -13118,6 +13224,7 @@ Only supported on Linux, Windows and macOS.
   "auto_redirect_input_mark": "0x2023",
   "auto_redirect_output_mark": "0x2024",
   "auto_redirect_reset_mark": "0x2025",
+  "auto_redirect_tproxy_mark": "0x2026",
   "auto_redirect_nfqueue": 100,
   "auto_redirect_iproute2_fallback_rule_index": 32768,
   "exclude_mptcp": false,
@@ -13281,17 +13388,17 @@ How DNS is handled on the TUN interface.
 
 `disabled``native``systemd-resolved``hijack``native`hijack adds the following on top of native:
 
-`hijack``native`On Linux: only DNS sent to non-local destinations can be intercepted.
-Traffic destined to addresses on the host's own interfaces (such as
-127.0.0.53 or the host's LAN-side IP) is delivered through the kernel
-local routing table before any user rule applies, and OUTPUT NAT cannot
-redirect packets going through lo.
+`hijack``native`On Linux: without address rewriting, only DNS sent to non-local
+destinations can be intercepted. Traffic destined to addresses on the host's
+own interfaces (such as 127.0.0.53 or the host's LAN-side IP) is delivered
+through the kernel local routing table before any user rule applies, and
+OUTPUT NAT cannot redirect packets going through lo.
 
 `127.0.0.53``local``OUTPUT``lo`- Without auto_redirect, an iproute2 rule makes port 53 skip the main
   table's specific-route lookup, forcing DNS that would otherwise be
   delivered through a directly-attached subnet through the TUN. Destination
   addresses are not rewritten.
-- With auto_redirect, an nftables rule DNATs port 53 traffic directly to
+- With auto_redirect, port 53 traffic is redirected directly to
   dns_address.
 
 `auto_redirect``iproute2``main``auto_redirect``dns_address`On Windows with strict_route: a WFP filter blocks port
@@ -13367,13 +13474,12 @@ auto_redirect is always recommended on Linux, it provides better routing,
 higher performance (better than tproxy),
 and avoids conflicts between TUN and Docker bridge networks.
 
-`auto_redirect`Note that auto_redirect also works on Android, 
-but due to the lack of nftables and ip6tables,
-only simple IPv4 TCP forwarding is performed.
-To share your VPN connection over hotspot or repeater on Android,
-use VPNHotspot.
+`auto_redirect`Pre-matching requires nfqueue support in the kernel (nfnetlink_queue).
 
-`auto_redirect``nftables``ip6tables`auto_redirect also automatically inserts compatibility rules
+`nfnetlink_queue`auto_redirect is fully supported on Android through the root service of the graphical client
+or a root shell, including forwarded traffic (hotspot, repeater).
+
+`auto_redirect`auto_redirect also automatically inserts compatibility rules
 into the OpenWrt fw4 table, i.e. 
 it will work on routers without any extra configuration.
 
@@ -13385,25 +13491,33 @@ Since sing-box 1.10.0
 
 Connection input mark used by auto_redirect.
 
-`auto_redirect`0x2023 is used by default.
+`auto_redirect`0x2023 is used by default (0x400000 on Android).
 
-`0x2023`#### auto_redirect_output_mark
+`0x2023``0x400000`#### auto_redirect_output_mark
 
 Since sing-box 1.10.0
 
 Connection output mark used by auto_redirect.
 
-`auto_redirect`0x2024 is used by default.
+`auto_redirect`0x2024 is used by default (0x200000 on Android).
 
-`0x2024`#### auto_redirect_reset_mark
+`0x2024``0x200000`#### auto_redirect_reset_mark
 
 Since sing-box 1.13.0
 
 Connection reset mark used by auto_redirect pre-matching.
 
-`auto_redirect`0x2025 is used by default.
+`auto_redirect`0x2025 is used by default (0x600000 on Android).
 
-`0x2025`#### auto_redirect_nfqueue
+`0x2025``0x600000`#### auto_redirect_tproxy_mark
+
+Since sing-box 1.15.0
+
+Connection TPROXY mark used by the auto_redirect iptables backend for IPv6 TCP.
+
+`auto_redirect`0x2026 is used by default (0x800000 on Android).
+
+`0x2026``0x800000`#### auto_redirect_nfqueue
 
 Since sing-box 1.13.0
 
@@ -13521,9 +13635,9 @@ use route_exclude_address instead.
 
 `auto_redirect``auto_redirect`Since sing-box 1.10.0
 
-Only supported on Linux with nftables and requires auto_route and auto_redirect enabled.
+Only supported on Linux and requires auto_route and auto_redirect enabled.
 
-`auto_route``auto_redirect`Add the destination IP CIDR rules in the specified rule-sets to the firewall.
+`auto_route``auto_redirect`Match the destination IP CIDR rules in the specified rule-sets during pre-matching.
 Unmatched traffic will bypass the sing-box routes.
 
 Conflict with route.default_mark and [dialOptions].routing_mark.
@@ -13541,9 +13655,9 @@ but otherwise it works fine on all command line clients and Apple platforms.
 
 `auto_redirect``auto_redirect`Since sing-box 1.10.0
 
-Only supported on Linux with nftables and requires auto_route and auto_redirect enabled.
+Only supported on Linux and requires auto_route and auto_redirect enabled.
 
-`auto_route``auto_redirect`Add the destination IP CIDR rules in the specified rule-sets to the firewall.
+`auto_route``auto_redirect`Match the destination IP CIDR rules in the specified rule-sets during pre-matching.
 Matched traffic will bypass the sing-box routes.
 
 Since sing-box 1.11.0
