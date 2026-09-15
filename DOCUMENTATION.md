@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-13 03:13:37 UTC
+> Generated on: 2026-09-15 03:28:02 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -222,11 +222,29 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.15.0-alpha.2
+#### 1.15.0-alpha.4
 
 - Fixes and improvements
 
-#### 1.15.0-alpha.1
+#### 1.14.1
+
+- Fixes and improvements
+
+#### 1.15.0-alpha.3
+
+- Significantly improve TUN performance with a new TCP/IP stack 1
+- Fixes and improvements
+
+1:
+
+Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.
+Remove the stack option to use it.
+
+`stack`The stack option is deprecated and will be removed in sing-box 1.17.0.
+See Migration.
+
+`stack`#### 1.15.0-alpha.1
 
 - Implement fully functional auto_redirect for Android 1
 - Add on_demand endpoint option 2
@@ -5749,7 +5767,6 @@ SFA provides an unprivileged TUN implementation through Android VpnService.
 | inet6_route_address |  | / | 
 | inet4_route_exclude_address |  | / | 
 | inet6_route_exclude_address |  | / | 
-| endpoint_independent_nat |  | / | 
 | stack |  | / | 
 | include_interface |  | No permission | 
 | exclude_interface |  | No permission | 
@@ -5760,7 +5777,7 @@ SFA provides an unprivileged TUN implementation through Android VpnService.
 | exclude_package |  | / | 
 | platform |  | / | 
 
-`interface_name``inet4_address``inet6_address``mtu``gso``auto_route``strict_route``inet4_route_address``inet6_route_address``inet4_route_exclude_address``inet6_route_exclude_address``endpoint_independent_nat``stack``include_interface``exclude_interface``include_uid``exclude_uid``include_android_user``include_package``exclude_package``platform`| Route/DNS rule option | Available | Note | 
+`interface_name``inet4_address``inet6_address``mtu``gso``auto_route``strict_route``inet4_route_address``inet6_route_address``inet4_route_exclude_address``inet6_route_exclude_address``stack``include_interface``exclude_interface``include_uid``exclude_uid``include_android_user``include_package``exclude_package``platform`| Route/DNS rule option | Available | Note | 
 | --- | --- | --- |
 | process_name |  | No permission | 
 | process_path |  | No permission | 
@@ -5881,7 +5898,6 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 | inet6_route_address |  | / | 
 | inet4_route_exclude_address |  | / | 
 | inet6_route_exclude_address |  | / | 
-| endpoint_independent_nat |  | / | 
 | stack |  | / | 
 | include_interface | ️ | Not implemented | 
 | exclude_interface | ️ | Not implemented | 
@@ -5892,7 +5908,7 @@ SFI/SFM/SFT provides an unprivileged TUN implementation through NetworkExtension
 | exclude_package | ️ | Not implemented | 
 | platform |  | / | 
 
-`interface_name``inet4_address``inet6_address``mtu``gso``auto_route``strict_route``inet4_route_address``inet6_route_address``inet4_route_exclude_address``inet6_route_exclude_address``endpoint_independent_nat``stack``include_interface``exclude_interface``include_uid``exclude_uid``include_android_user``include_package``exclude_package``platform`| Route/DNS rule option | Available | Note | 
+`interface_name``inet4_address``inet6_address``mtu``gso``auto_route``strict_route``inet4_route_address``inet6_route_address``inet4_route_exclude_address``inet6_route_exclude_address``stack``include_interface``exclude_interface``include_uid``exclude_uid``include_android_user``include_package``exclude_package``platform`| Route/DNS rule option | Available | Note | 
 | --- | --- | --- |
 | process_name |  | Only supported in the macOS standalone and iOS jailbreak versions | 
 | process_path |  | Only supported in the macOS standalone and iOS jailbreak versions | 
@@ -13140,6 +13156,8 @@ See QUIC Fields for details.
 Changes in sing-box 1.15.0
 
 auto_redirect_tproxy_mark
+ multi_queue
+ stack
 
 Changes in sing-box 1.14.0
 
@@ -13256,7 +13274,7 @@ Only supported on Linux, Windows and macOS.
 
   ... // UDP NAT Fields
 
-  "stack": "system",
+  "multi_queue": false,
   "include_interface": [
     "lan0"
   ],
@@ -13301,6 +13319,7 @@ Only supported on Linux, Windows and macOS.
     }
   },
   // Deprecated
+  "stack": "system",
   "gso": false,
   "inet4_address": [
     "172.19.0.1/30"
@@ -13675,13 +13694,23 @@ but otherwise it works fine on all command line clients and Apple platforms.
 
 #### endpoint_independent_nat
 
-This item is only available on the gvisor stack, other stacks are endpoint-independent NAT by default.
+This option has had no effect since sing-box 1.11.0 and can be removed from the configuration.
 
-Enable endpoint-independent NAT.
-
-Performance may degrade slightly, so it is not recommended to enable on when it is not needed.
+Since sing-box 1.14.0, use UDP NAT fields
+to customize the mapping and filtering behavior.
 
 #### stack
+
+Deprecated in sing-box 1.15.0
+
+stack is deprecated and will be removed in sing-box 1.17.0.
+Remove the stack option to use sing-tun's own TCP/IP stack.
+See Migration.
+
+`stack``stack`Changes in sing-box 1.15.0
+
+Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.
 
 Changes in sing-box 1.8.0
 
@@ -13689,15 +13718,21 @@ The legacy LWIP stack has been deprecated and removed.
 
 TCP/IP stack.
 
+The following legacy implementations remain available during the deprecation period.
+
 | Stack | Description | 
 | --- | --- |
 | system | Perform L3 to L4 translation using the system network stack | 
 | gvisor | Perform L3 to L4 translation using gVisor's virtual network stack | 
 | mixed | Mixed system TCP stack and gvisor UDP stack | 
 
-`system``gvisor``mixed``system``gvisor`Defaults to the mixed stack if the gVisor build tag is enabled, otherwise defaults to the system stack.
+`system``gvisor``mixed``system``gvisor`#### multi_queue
 
-`mixed``system`#### include_interface
+Only supported on Linux, and requires sing-tun's own TCP/IP stack.
+
+Enable multi-queue support based on IFF_MULTI_QUEUE, allowing throughput to scale with the number of CPU cores.
+
+`IFF_MULTI_QUEUE`#### include_interface
 
 Interface rules are only supported on Linux and require auto_route.
 
@@ -21958,7 +21993,17 @@ Uses Windows WLAN API.
 
 # Deprecated Feature List
 
-## 1.14.0
+## 1.15.0
+
+#### TUN stack option
+
+`stack`The TUN stack option is deprecated and will be removed in sing-box 1.17.0.
+
+`stack`Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.
+Remove the stack option to use it, see Migration.
+
+`stack`## 1.14.0
 
 #### Legacy download_detour remote rule-set option
 
@@ -22535,10 +22580,11 @@ Android does not handle DHCP option 121 and is not affected.
 Update sing-box graphical client to 1.9.0-rc.16 or newer,
 then enable includeAllNetworks in Settings — Packet Tunnel and you will be unaffected.
 
-`1.9.0-rc.16``includeAllNetworks``Settings``Packet Tunnel`Note: when includeAllNetworks is enabled, the default TUN stack is changed to gvisor,
-and the system and mixed stacks are not available.
+`1.9.0-rc.16``includeAllNetworks``Settings``Packet Tunnel`Since sing-box 1.15.0, sing-tun's own TCP/IP stack supports includeAllNetworks.
+Remove the stack option to use it. The legacy system and mixed stacks are not available
+when includeAllNetworks is enabled.
 
-`includeAllNetworks``gvisor``system``mixed`### Linux
+`includeAllNetworks``stack``system``mixed``includeAllNetworks`### Linux
 
 Update sing-box to 1.9.0-rc.16 or newer, rules generated by auto-route are unaffected.
 
@@ -23117,11 +23163,9 @@ flowchart TB
     tun[TUN interface]
     windows -. route .-> tun
     linux -. iproute2 route/rule .-> tun
-    tun --> gvisor[gVisor TUN stack]
-    tun --> system[system TUN stack]
+    tun --> stack[sing-tun TCP/IP stack]
     assemble([L3 to L4 assemble])
-    gvisor --> assemble
-    system --> assemble
+    stack --> assemble
     assemble --> conn[TCP and UDP connections]
     conn --> router[sing-box Router]
     router --> direct[Direct outbound]
@@ -23571,6 +23615,44 @@ of recommended protocols for bypassing GFW.
 **Source URL**: <https://sing-box.sagernet.org/migration/>
 
 # Migration
+
+## 1.15.0
+
+### Migrate TUN stack
+
+Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
+implementations in peak performance, energy efficiency, and memory usage.
+Remove the stack option to use it.
+
+`stack`The stack option is deprecated in sing-box 1.15.0 and will be removed in sing-box 1.17.0.
+
+`stack`Starting with sing-box 1.16.0, the command-line client requires ENABLE_DEPRECATED_TUN_STACK=true
+to continue using this option.
+
+`ENABLE_DEPRECATED_TUN_STACK=true````
+{
+  "inbounds": [
+    {
+      "type": "tun",
+      "address": ["172.18.0.1/30"],
+      "stack": "system"
+    }
+  ]
+}
+
+```
+
+```
+{
+  "inbounds": [
+    {
+      "type": "tun",
+      "address": ["172.18.0.1/30"]
+    }
+  ]
+}
+
+```
 
 ## 1.14.0
 
