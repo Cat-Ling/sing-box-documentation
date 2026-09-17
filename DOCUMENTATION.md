@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-15 03:28:02 UTC
+> Generated on: 2026-09-17 03:29:38 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -59,6 +59,7 @@
 - [ShadowTLS](#shadowtls)
 - [Snell](#snell)
 - [SOCKS](#socks)
+- [Tailcat](#tailcat)
 - [TProxy](#tproxy)
 - [Trojan](#trojan)
 - [TUIC](#tuic)
@@ -84,6 +85,7 @@
 - [Snell](#snell)
 - [SOCKS](#socks)
 - [SSH](#ssh)
+- [Tailcat](#tailcat)
 - [Tor](#tor)
 - [Trojan](#trojan)
 - [TUIC](#tuic)
@@ -222,7 +224,22 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.15.0-alpha.4
+#### 1.15.0-alpha.5
+
+- Add Tailcat support 1
+- Fixes and improvements
+
+1:
+
+Tailcat is Tailscale's data plane without its control plane:
+point-to-point WireGuard tunnels bootstrapped through DERP, with NAT traversal.
+
+See Tailcat Inbound and Tailcat Outbound.
+
+The DERP service can verify Tailcat clients with the new verify_client_inbound and verify_client_key options,
+see DERP Service.
+
+`verify_client_inbound``verify_client_key`#### 1.15.0-alpha.4
 
 - Fixes and improvements
 
@@ -11714,8 +11731,9 @@ User list to count traffic.
 | redirect | Redirect |  | 
 | tproxy | TProxy |  | 
 | cloudflared | Cloudflared |  | 
+| tailcat | Tailcat |  | 
 
-`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``snell``tun``redirect``tproxy``cloudflared`#### tag
+`direct``mixed``socks``http``shadowsocks``vmess``trojan``naive``hysteria``shadowtls``tuic``hysteria2``vless``anytls``snell``tun``redirect``tproxy``cloudflared``tailcat`#### tag
 
 The tag of the inbound.
 
@@ -12923,6 +12941,112 @@ See Listen Fields for details.
 SOCKS users.
 
 No authentication required if empty.
+
+
+---
+
+## Tailcat
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/inbound/tailcat/>
+
+# Tailcat
+
+Since sing-box 1.15.0
+
+### Structure
+
+```
+{
+  "type": "tailcat",
+  "tag": "tailcat-in",
+
+  "private_key": "",
+  "pre_shared_key": "",
+  "users": [
+    {
+      "name": "",
+      "public_key": ""
+    }
+  ],
+  "derp_map_url": "",
+  "derp_region": 0,
+  "derp_servers": [],
+  "http_client": {},
+
+  ... // Dial Fields
+}
+
+```
+
+### Fields
+
+#### private_key
+
+Required
+
+Private key.
+
+Generate with sing-box generate tailcat-keypair.
+
+`sing-box generate tailcat-keypair`#### pre_shared_key
+
+Pre-shared key.
+
+#### users
+
+Tailcat users.
+
+Clients are not verified if empty.
+
+To use a DERP server with client verification, set verify_client_inbound or verify_client_key in
+DERP service, and clients must use fixed
+private keys.
+
+`verify_client_inbound``verify_client_key`#### users.public_key
+
+Required
+
+Client public key.
+
+#### derp_map_url
+
+URL of the DERP map.
+
+https://tailcat.dev/derpmap.json is used by default.
+
+`https://tailcat.dev/derpmap.json`#### derp_region
+
+DERP region ID in the DERP map.
+
+Conflicts with derp_servers.
+
+`derp_servers`#### derp_servers
+
+Custom DERP servers in DERPNode format, with
+snake_case field names.
+
+Conflicts with derp_map_url and derp_region.
+
+`derp_map_url``derp_region`Setting Array value to a string __HOST__ is equivalent to configuring:
+
+`__HOST__````
+{ "host": __HOST__ }
+
+```
+
+#### http_client
+
+HTTP client used to fetch the DERP map.
+
+See HTTP Client for details.
+
+### Dial Fields
+
+Note
+
+Dial Fields in Tailcat inbounds only control how it connects to DERP servers and have nothing to do with actual connections.
+
+See Dial Fields for details.
 
 
 ---
@@ -14245,6 +14369,7 @@ See Dial Fields for details.
 | hysteria2 | Hysteria2 | 
 | anytls | AnyTLS | 
 | snell | Snell | 
+| tailcat | Tailcat | 
 | tor | Tor | 
 | ssh | SSH | 
 | dns | DNS | 
@@ -14252,7 +14377,7 @@ See Dial Fields for details.
 | urltest | URLTest | 
 | naive | NaiveProxy | 
 
-`direct``bridge``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``snell``tor``ssh``dns``selector``urltest``naive`#### tag
+`direct``bridge``block``socks``http``shadowsocks``vmess``trojan``wireguard``hysteria``vless``shadowtls``tuic``hysteria2``anytls``snell``tailcat``tor``ssh``dns``selector``urltest``naive`#### tag
 
 The tag of the outbound.
 
@@ -15733,6 +15858,97 @@ See Dial Fields for details.
 
 ---
 
+## Tailcat
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/outbound/tailcat/>
+
+# Tailcat
+
+Since sing-box 1.15.0
+
+### Structure
+
+```
+{
+  "type": "tailcat",
+  "tag": "tailcat-out",
+
+  "private_key": "",
+  "server_public_key": "",
+  "server_disco_key": "",
+  "pre_shared_key": "",
+  "derp_map_url": "",
+  "derp_region": 0,
+  "derp_servers": [],
+  "http_client": {},
+
+  ... // Dial Fields
+}
+
+```
+
+### Fields
+
+#### private_key
+
+Private key.
+
+A random key is used by default.
+
+Required when the server verifies clients with users, or the DERP server verifies clients with
+verify_client_inbound or verify_client_key.
+
+`users``verify_client_inbound``verify_client_key`#### server_public_key
+
+Required
+
+Server public key.
+
+#### server_disco_key
+
+Required
+
+Server disco public key.
+
+#### pre_shared_key
+
+Pre-shared key.
+
+#### derp_map_url
+
+URL of the DERP map.
+
+https://tailcat.dev/derpmap.json is used by default.
+
+`https://tailcat.dev/derpmap.json`#### derp_region
+
+DERP region ID in the DERP map.
+
+Conflicts with derp_servers.
+
+`derp_servers`#### derp_servers
+
+Custom DERP servers, see derp_servers in Tailcat inbound.
+
+Conflicts with derp_map_url and derp_region.
+
+`derp_map_url``derp_region`#### http_client
+
+HTTP client used to fetch the DERP map.
+
+See HTTP Client for details.
+
+### Dial Fields
+
+Note
+
+Dial Fields in Tailcat outbounds only control how it connects to DERP servers and have nothing to do with actual connections.
+
+See Dial Fields for details.
+
+
+---
+
 ## Tor
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/outbound/tor/>
@@ -16330,8 +16546,6 @@ The server port.
 Use system interface.
 
 Requires privilege and cannot conflict with exists system interfaces.
-
-Forced if gVisor not included in the build.
 
 #### interface_name
 
@@ -18633,6 +18847,8 @@ DERP service is a Tailscale DERP server, similar to derper.
   "config_path": "",
   "verify_client_endpoint": [],
   "verify_client_url": [],
+  "verify_client_inbound": [],
+  "verify_client_key": [],
   "home": "",
   "mesh_with": [],
   "mesh_psk": "",
@@ -18685,6 +18901,18 @@ Setting Array value to a string __URL__ is equivalent to configuring:
 { "url": __URL__ }
 
 ```
+
+#### verify_client_inbound
+
+Since sing-box 1.15.0
+
+Tailcat inbound tags to verify clients.
+
+#### verify_client_key
+
+Since sing-box 1.15.0
+
+Tailcat public keys to verify clients.
 
 #### home
 
@@ -22253,7 +22481,7 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | with_acme |  | Build with ACME TLS certificate issuer support, see TLS. | 
 | with_clash_api |  | Build with Clash API support, see Experimental. | 
 | with_v2ray_api | ️ | Build with V2Ray API support, see Experimental. | 
-| with_gvisor |  | Build with gVisor support, see Tun inbound and WireGuard outbound. | 
+| with_gvisor |  | Build with gVisor support, required by the deprecated gvisor / mixed Tun stacks. | 
 | with_embedded_tor (CGO required) | ️ | Build with embedded Tor support, see Tor outbound. | 
 | with_tailscale |  | Build with Tailscale support, see Tailscale endpoint. | 
 | with_ccm |  | Build with Claude Code Multiplexer service support. | 
@@ -22263,7 +22491,7 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | badlinkname |  | Enable go:linkname access to internal standard library functions. Required because the Go standard library does not expose many low-level APIs needed by this project, and reimplementing them externally is impractical. Used for kTLS (kernel TLS offload) and raw TLS record manipulation. | 
 | tfogo_checklinkname0 |  | Companion to badlinkname. Go 1.23+ enforces go:linkname restrictions via the linker; this tag signals the build uses -checklinkname=0 to bypass that enforcement. | 
 
-`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``with_cloudflared``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
+`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``gvisor``mixed``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``with_cloudflared``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
 
 ##  Linker Flags
 
