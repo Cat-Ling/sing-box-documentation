@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-17 03:29:38 UTC
+> Generated on: 2026-09-19 03:12:02 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -223,6 +223,10 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.6
+
+- Fixes and improvements
 
 #### 1.15.0-alpha.5
 
@@ -18658,22 +18662,13 @@ https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip w
 
 `https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip`##### http_client
 
-HTTP client used to download the dashboard, with the same behavior as remote rule-sets.
+HTTP client used to download the dashboard.
 
 See HTTP Client Fields for details.
 
-When empty, the default HTTP client is used: the one named by
-default_http_client, or the first top-level
-http_clients entry when default_http_client is empty.
+Not used when the dashboard directory contains user-provided files.
 
-`default_http_client``http_clients``default_http_client`Implicit default deprecated in sing-box 1.14.0
-
-When neither http_clients nor default_http_client is configured, an implicit HTTP
-client connecting through the default outbound is used. This implicit default is
-deprecated in sing-box 1.14.0 and will be removed in sing-box 1.16.0; define
-http_clients instead.
-
-`http_clients``default_http_client``http_clients`##### update_interval
+##### update_interval
 
 Update interval of the dashboard.
 
@@ -21246,8 +21241,7 @@ See Application-Layer Protocol Negotiation.
 
 The minimum TLS version that is acceptable.
 
-By default, TLS 1.2 is currently used as the minimum when acting as a
-client, and TLS 1.0 when acting as a server.
+TLS 1.2 is used by default.
 
 #### max_version
 
