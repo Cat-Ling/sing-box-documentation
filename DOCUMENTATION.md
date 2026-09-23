@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-21 03:23:27 UTC
+> Generated on: 2026-09-23 03:23:40 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -13,6 +13,8 @@
 - [Introduction](#introduction)
 - [Certificate](#certificate)
 - [Endpoint](#endpoint)
+- [MASQUE Client](#masque-client)
+- [MASQUE Server](#masque-server)
 - [OpenConnect Client](#openconnect-client)
 - [OpenVPN Client](#openvpn-client)
 - [OpenVPN Server](#openvpn-server)
@@ -223,6 +225,42 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.7
+
+- Add MASQUE client and server support 1
+- Add HTTP/2, HTTP/3 and UDP support for HTTP proxy 2
+- Add full certificate pinning for TLS 3
+- Fixes and improvements
+
+1:
+
+The new MASQUE Client and
+MASQUE Server endpoints provide IP proxying over HTTP
+(CONNECT-IP), supporting HTTP/1.1, HTTP/2 and HTTP/3, address assignment and route advertisement.
+They can use the internal network stack or a system TUN interface.
+
+2:
+
+The HTTP proxy implementation has been rewritten, adding HTTP/2, HTTP/3 and UDP proxying through
+CONNECT-UDP to HTTP inbounds and outbounds.
+
+HTTP outbounds now use HTTP/2 by default with automatic fallback to HTTP/1.1. Configurations using
+path or the Host header continue to use HTTP/1.1. HTTP/3 can be enabled through the version option.
+
+`path``Host``version`The term "MASQUE VPN" usually refers to CONNECT-IP, rather than a combination of CONNECT and
+CONNECT-UDP, which is an enhancement to HTTP proxying. CONNECT-UDP and CONNECT-IP are collectively
+known as MASQUE in the IETF; the traditional CONNECT
+method for TCP proxying is not itself a MASQUE protocol.
+
+See HTTP Inbound and HTTP Outbound.
+
+3:
+
+The new certificate_sha256 and client_certificate_sha256 TLS options pin the SHA-256 hash of the whole
+certificate, complementing the existing public key pinning options.
+
+`certificate_sha256``client_certificate_sha256`See TLS.
 
 #### 1.15.0-alpha.6
 
@@ -8840,10 +8878,305 @@ An endpoint is a protocol with inbound and outbound behavior.
 | openconnect | OpenConnect Client | 
 | openvpn-client | OpenVPN Client | 
 | openvpn-server | OpenVPN Server | 
+| masque-client | MASQUE Client | 
+| masque-server | MASQUE Server | 
 
-`wireguard``tailscale``openconnect``openvpn-client``openvpn-server`#### tag
+`wireguard``tailscale``openconnect``openvpn-client``openvpn-server``masque-client``masque-server`#### tag
 
 The tag of the endpoint.
+
+
+---
+
+## MASQUE Client
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/masque-client/>
+
+# MASQUE Client
+
+Since sing-box 1.15.0
+
+masque-client endpoint is an IP proxying over HTTP (RFC 9484, CONNECT-IP) client.
+
+`masque-client`## Structure
+
+```
+{
+  "type": "masque-client",
+  "tag": "masque-client",
+
+  "server": "127.0.0.1",
+  "server_port": 443,
+  "username": "",
+  "password": "",
+  "path": "",
+  "headers": {},
+  "version": 0,
+  "disable_version_fallback": false,
+  "tls": {},
+  "advertise_routes": [],
+  "system": false,
+  "name": "",
+  "mtu": 1280,
+  "on_demand": false,
+
+  ... // HTTP2 Fields / QUIC Fields
+  ... // UDP NAT Fields
+  ... // Dial Fields
+}
+
+```
+
+You can ignore the JSON Array [] tag when the content is only one item
+
+## Fields
+
+### server
+
+Required
+
+The server address.
+
+### server_port
+
+Required
+
+The server port.
+
+### username
+
+Basic authorization username.
+
+### password
+
+Basic authorization password.
+
+### path
+
+URI template path of the IP proxying resource, may contain the target and ipproto variables.
+
+`target``ipproto`/.well-known/masque/ip/{target}/{ipproto}/ is used by default.
+
+`/.well-known/masque/ip/{target}/{ipproto}/`### headers
+
+Extra headers of HTTP request.
+
+### version
+
+HTTP version.
+
+Available values: 1, 2, 3.
+
+`1``2``3`3 is used by default.
+
+`3`When 1 or 2, IP packets are carried in the TCP stream instead of QUIC datagrams.
+
+`1``2`When 2, QUIC Fields are replaced by HTTP2 Fields.
+
+`2`### disable_version_fallback
+
+Disable automatic fallback to lower HTTP version.
+
+### tls
+
+TLS configuration, see TLS.
+
+Required for HTTP/3.
+
+### advertise_routes
+
+List of IP prefixes to advertise to the server.
+
+The server will route traffic for these prefixes into this endpoint, where it is handled as inbound traffic.
+
+### system
+
+Use system interface.
+
+Requires privilege and cannot conflict with existing system interfaces.
+
+The endpoint configures interface addresses and MTU but does not install
+operating-system routes or DNS settings.
+
+If disabled, sing-box uses the internal network stack.
+
+### name
+
+Custom interface name for system interface.
+
+An automatically generated masque interface name is used by default.
+
+`masque`### mtu
+
+Tunnel MTU.
+
+1280 will be used by default.
+
+`1280`### on_demand
+
+Allow the endpoint to be disconnected when necessary.
+
+## HTTP2 Fields
+
+When version is 2.
+
+`version``2`See HTTP2 Fields for details.
+
+keep_alive_period is 10s by default.
+
+`keep_alive_period``10s`## QUIC Fields
+
+When version is 3 (default).
+
+`version``3`See QUIC Fields for details.
+
+keep_alive_period is 10s by default.
+
+`keep_alive_period``10s`initial_packet_size is mtu + 51 by default, so that IP packets up to the tunnel MTU fit into a QUIC datagram. QUIC packets cannot exceed 1452 bytes; with a larger mtu, IP packets that do not fit are answered with ICMP Packet Too Big. If the path cannot carry packets of that size, the QUIC handshake fails and the client falls back to a lower HTTP version.
+
+`initial_packet_size``mtu + 51``mtu`## UDP NAT Fields
+
+See UDP NAT Fields for details.
+
+## Dial Fields
+
+See Dial Fields for details.
+
+
+---
+
+## MASQUE Server
+
+**Source URL**: <https://sing-box.sagernet.org/configuration/endpoint/masque-server/>
+
+# MASQUE Server
+
+Since sing-box 1.15.0
+
+masque-server endpoint is an IP proxying over HTTP (RFC 9484, CONNECT-IP) server.
+
+`masque-server`## Structure
+
+```
+{
+  "type": "masque-server",
+  "tag": "masque-server",
+
+  ... // Listen Fields
+
+  "version": [],
+  "users": [
+    {
+      "username": "",
+      "password": ""
+    }
+  ],
+  "tls": {},
+  "path": "",
+  "address": [],
+  "advertise_routes": [],
+  "system": false,
+  "name": "",
+  "mtu": 1280,
+
+  ... // HTTP2 Fields / QUIC Fields
+  ... // UDP NAT Fields
+}
+
+```
+
+You can ignore the JSON Array [] tag when the content is only one item
+
+## Listen Fields
+
+See Listen Fields for details. udp_timeout is part of the UDP NAT Fields below.
+
+`udp_timeout`## Fields
+
+### version
+
+List of HTTP versions to serve.
+
+Available values: 1, 2, 3.
+
+`1``2``3`All versions are used by default.
+
+TLS is required for 3.
+
+`3`### users
+
+HTTP users, verified by the Authorization header.
+
+`Authorization`No authentication required if empty.
+
+### tls
+
+TLS configuration, see TLS.
+
+IP proxying must be operated over TLS or QUIC. Leave it disabled only when the server is placed behind an HTTP intermediary that terminates TLS.
+
+### path
+
+URI template path of the IP proxying resource, may contain the target and ipproto variables.
+
+`target``ipproto`/.well-known/masque/ip/{target}/{ipproto}/ is used by default.
+
+`/.well-known/masque/ip/{target}/{ipproto}/`### address
+
+Required
+
+List of IP prefixes of the tunnel network, at most one for each IP version.
+
+The address of the prefix is used by the server itself, other addresses in the prefix are assigned to clients.
+
+### advertise_routes
+
+List of IP prefixes to advertise to clients, in addition to the tunnel network.
+
+Traffic from clients to other destinations is rejected.
+
+All addresses are advertised by default.
+
+### system
+
+Use system interface.
+
+Requires privilege and cannot conflict with existing system interfaces.
+
+The endpoint configures interface addresses and MTU but does not install
+operating-system routes or DNS settings.
+
+If disabled, sing-box uses the internal network stack.
+
+### name
+
+Custom interface name for system interface.
+
+An automatically generated masque interface name is used by default.
+
+`masque`### mtu
+
+Tunnel MTU.
+
+1280 will be used by default.
+
+`1280`## HTTP2 Fields
+
+When version contains 2.
+
+`version``2`See HTTP2 Fields for details.
+
+## QUIC Fields
+
+When version contains 3 (default), HTTP2 Fields are replaced by QUIC Fields.
+
+`version``3`See QUIC Fields for details.
+
+initial_packet_size is mtu + 51 by default, so that IP packets up to the tunnel MTU fit into a QUIC datagram. QUIC packets cannot exceed 1452 bytes; with a larger mtu, IP packets that do not fit are answered with ICMP Packet Too Big.
+
+`initial_packet_size``mtu + 51``mtu`## UDP NAT Fields
+
+See UDP NAT Fields for details.
 
 
 ---
@@ -11971,6 +12304,7 @@ Override the connection destination port.
 
   ... // Listen Fields
 
+  "version": [],
   "users": [
     {
       "username": "admin",
@@ -11978,7 +12312,9 @@ Override the connection destination port.
     }
   ],
   "tls": {},
-  "set_system_proxy": false
+  "set_system_proxy": false,
+
+  ... // HTTP2 Fields / QUIC Fields
 }
 
 ```
@@ -11989,7 +12325,19 @@ See Listen Fields for details.
 
 ### Fields
 
-#### tls
+#### version
+
+Since sing-box 1.15.0
+
+List of HTTP versions to serve.
+
+Available values: 1, 2, 3.
+
+`1``2``3`1 and 2 are used by default.
+
+`1``2`TLS is required for 3.
+
+`3`#### tls
 
 TLS configuration, see TLS.
 
@@ -12006,6 +12354,22 @@ Only supported on Linux, Android, Windows, and macOS.
 To work on Android and Apple platforms without privileges, use tun.platform.http_proxy instead.
 
 Automatically set system proxy configuration when start and clean up when stop.
+
+### HTTP2 Fields
+
+Since sing-box 1.15.0
+
+When version contains 2.
+
+`version``2`See HTTP2 Fields for details.
+
+### QUIC Fields
+
+Since sing-box 1.15.0
+
+When version contains 3, HTTP2 Fields are replaced by QUIC Fields.
+
+`version``3`See QUIC Fields for details.
 
 
 ---
@@ -14680,8 +15044,11 @@ http outbound is a HTTP CONNECT proxy client.
   "password": "admin",
   "path": "",
   "headers": {},
+  "version": 0,
+  "disable_version_fallback": false,
   "tls": {},
 
+  ... // HTTP2 Fields / QUIC Fields
   ... // Dial Fields
 }
 
@@ -14717,9 +15084,45 @@ Path of HTTP request.
 
 Extra headers of HTTP request.
 
+#### version
+
+Since sing-box 1.15.0
+
+HTTP version.
+
+Available values: 1, 2, 3.
+
+`1``2``3`2 is used by default, or 1 if path or the Host header is set.
+
+`2``1``path``Host`path and the Host header are only available for 1.
+
+`path``Host``1`When 3, HTTP2 Fields are replaced by QUIC Fields.
+
+`3`#### disable_version_fallback
+
+Since sing-box 1.15.0
+
+Disable automatic fallback to lower HTTP version.
+
 #### tls
 
 TLS configuration, see TLS.
+
+### HTTP2 Fields
+
+Since sing-box 1.15.0
+
+When version is 2 (default).
+
+`version``2`See HTTP2 Fields for details.
+
+### QUIC Fields
+
+Since sing-box 1.15.0
+
+When version is 3.
+
+`version``3`See QUIC Fields for details.
 
 ### Dial Fields
 
@@ -20310,10 +20713,11 @@ Supported fields:
 - tls.insecure
 - tls.min_version / tls.max_version
 - tls.certificate / tls.certificate_path
+- tls.certificate_sha256
 - tls.certificate_public_key_sha256
 - Dial Fields
 
-`headers``tls.server_name``tls.insecure``tls.min_version``tls.max_version``tls.certificate``tls.certificate_path``tls.certificate_public_key_sha256`Unsupported fields:
+`headers``tls.server_name``tls.insecure``tls.min_version``tls.max_version``tls.certificate``tls.certificate_path``tls.certificate_sha256``tls.certificate_public_key_sha256`Unsupported fields:
 
 - version
 - disable_version_fallback
@@ -20952,6 +21356,11 @@ Upload and download bandwidth, in Mbps.
 
 # TLS
 
+Changes in sing-box 1.15.0
+
+certificate_sha256
+ client_certificate_sha256
+
 Changes in sing-box 1.14.0
 
 certificate_provider
@@ -21003,6 +21412,7 @@ utls
   "client_authentication": "",
   "client_certificate": [],
   "client_certificate_path": [],
+  "client_certificate_sha256": [],
   "client_certificate_public_key_sha256": [],
   "key": [],
   "key_path": "",
@@ -21073,6 +21483,7 @@ utls
   "curve_preferences": [],
   "certificate": "",
   "certificate_path": "",
+  "certificate_sha256": [],
   "certificate_public_key_sha256": [],
   "client_certificate": [],
   "client_certificate_path": "",
@@ -21166,10 +21577,11 @@ Values:
 - min_version
 - max_version
 - certificate / certificate_path
+- certificate_sha256
 - certificate_public_key_sha256
 - handshake_timeout
 
-`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
+`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_sha256``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
 
 - disable_sni
 - cipher_suites
@@ -21195,10 +21607,11 @@ Values:
 - min_version
 - max_version
 - certificate / certificate_path
+- certificate_sha256
 - certificate_public_key_sha256
 - handshake_timeout
 
-`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
+`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_sha256``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
 
 - disable_sni
 - cipher_suites
@@ -21281,6 +21694,28 @@ Will be automatically reloaded if file modified.
 
 The path to server certificate chain, in PEM format.
 
+#### certificate_sha256
+
+Since sing-box 1.15.0
+
+Client only
+
+List of SHA-256 hashes of server certificates, in base64 format.
+
+The hash is computed over the whole DER-encoded certificate, so it changes whenever the certificate is renewed,
+even when the key stays the same. Use certificate_public_key_sha256 when only the key should be pinned.
+
+`certificate_public_key_sha256`To generate the SHA-256 hash for a certificate, use the following commands:
+
+```
+# For a certificate file
+openssl x509 -in certificate.pem -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+
+# For a certificate from a remote server
+echo | openssl s_client -servername example.com -connect example.com:443 2>/dev/null | openssl x509 -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+
+```
+
 #### certificate_public_key_sha256
 
 Since sing-box 1.13.0
@@ -21362,10 +21797,10 @@ Available values:
 - verify-if-given
 - require-and-verify
 
-`no``request``require-any``verify-if-given``require-and-verify`One of client_certificate, client_certificate_path, or client_certificate_public_key_sha256 is required
+`no``request``require-any``verify-if-given``require-and-verify`One of client_certificate, client_certificate_path, client_certificate_sha256, or client_certificate_public_key_sha256 is required
 if this option is set to verify-if-given, or require-and-verify.
 
-`client_certificate``client_certificate_path``client_certificate_public_key_sha256``verify-if-given``require-and-verify`#### client_certificate
+`client_certificate``client_certificate_path``client_certificate_sha256``client_certificate_public_key_sha256``verify-if-given``require-and-verify`#### client_certificate
 
 Since sing-box 1.13.0
 
@@ -21382,6 +21817,16 @@ Server only
 Will be automatically reloaded if file modified.
 
 List of path to client certificate chain, in PEM format.
+
+#### client_certificate_sha256
+
+Since sing-box 1.15.0
+
+Server only
+
+List of SHA-256 hashes of client certificates, in base64 format.
+
+The hash is computed over the whole DER-encoded certificate, see certificate_sha256.
 
 #### client_certificate_public_key_sha256
 
