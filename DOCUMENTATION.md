@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-23 03:23:40 UTC
+> Generated on: 2026-09-25 03:30:07 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -225,6 +225,22 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.8
+
+- Add dns_server_address and dns_search_domain rule items 1
+- Fixes and improvements
+
+`dns_server_address``dns_search_domain`1:
+
+Match the server addresses and search domains that DNS servers obtain from the system, DHCP or VPN.
+
+See Route Rule and
+DNS Rule.
+
+#### 1.14.2
+
+- Fixes and improvements
 
 #### 1.15.0-alpha.7
 
@@ -6443,6 +6459,11 @@ IPv6 address range for FakeIP.
 
 # DNS Rule
 
+Changes in sing-box 1.15.0
+
+dns_server_address
+ dns_search_domain
+
 Changes in sing-box 1.14.0
 
 source_mac_address
@@ -6619,6 +6640,16 @@ rule_set
           "local",
           "ts-dns"
         ],
+        "dns_server_address": {
+          "local": [
+            "192.168.1.1/32"
+          ]
+        },
+        "dns_search_domain": {
+          "ts-dns": [
+            "example.ts.net"
+          ]
+        },
         "wifi_ssid": [
           "My WIFI"
         ],
@@ -6950,7 +6981,37 @@ Match specified DNS servers' preferred domains.
 | openconnect | Match split DNS and search domains pushed by the VPN server | 
 | resolved | Match split DNS and search domains from systemd-resolved links | 
 
-`hosts``local``mdns``*.local.``tailscale``openconnect``resolved`#### wifi_ssid
+`hosts``local``mdns``*.local.``tailscale``openconnect``resolved`#### dns_server_address
+
+Since sing-box 1.15.0
+
+Match specified DNS servers' server addresses.
+
+| Type | Match | 
+| --- | --- |
+| local | Match system DNS servers | 
+| dhcp | Match DNS servers from DHCP | 
+| resolved | Match DNS servers from systemd-resolved links | 
+| tailscale | Match DNS resolvers of the tailnet | 
+| openvpn | Match DNS servers pushed by the VPN server | 
+| openconnect | Match DNS servers pushed by the VPN server | 
+
+`local``dhcp``resolved``tailscale``openvpn``openconnect`#### dns_search_domain
+
+Since sing-box 1.15.0
+
+Match specified DNS servers' search domains.
+
+| Type | Match | 
+| --- | --- |
+| local | Match system search domains | 
+| dhcp | Match search domains from DHCP | 
+| resolved | Match search domains from systemd-resolved links | 
+| tailscale | Match search domains of the tailnet | 
+| openvpn | Match search domains pushed by the VPN server | 
+| openconnect | Match search domains pushed by the VPN server | 
+
+`local``dhcp``resolved``tailscale``openvpn``openconnect`#### wifi_ssid
 
 Only supported in graphical clients on Android and Apple platforms, or on Linux.
 
@@ -14920,9 +14981,9 @@ Custom bridge TUN interface name prefix, bridge is used by default.
 
 #### iproute2_table_index
 
-Only supported on Linux, and only takes effect when interface is set.
+Only supported on Linux.
 
-`interface`Linux iproute2 table index for pinned egress routes.
+Linux iproute2 table index.
 
 2200 + instance index is used by default.
 
@@ -17332,6 +17393,11 @@ Default outbound will be used if empty.
 
 # Route Rule
 
+Changes in sing-box 1.15.0
+
+dns_server_address
+ dns_search_domain
+
 Changes in sing-box 1.14.0
 
 source_mac_address
@@ -17498,6 +17564,16 @@ rule_set
           "tailscale",
           "wireguard"
         ],
+        "dns_server_address": {
+          "local": [
+            "192.168.1.1/32"
+          ]
+        },
+        "dns_search_domain": {
+          "ts-dns": [
+            "example.ts.net"
+          ]
+        },
         "source_mac_address": [
           "00:11:22:33:44:55"
         ],
@@ -17775,7 +17851,37 @@ Match specified outbounds' preferred routes.
 | wireguard | Match peers's allowed IPs | 
 | bridge | Match all addresses except local addresses of the machine, only in pre-match | 
 
-`tailscale``wireguard``bridge`#### source_mac_address
+`tailscale``wireguard``bridge`#### dns_server_address
+
+Since sing-box 1.15.0
+
+Match specified DNS servers' server addresses.
+
+| Type | Match | 
+| --- | --- |
+| local | Match system DNS servers | 
+| dhcp | Match DNS servers from DHCP | 
+| resolved | Match DNS servers from systemd-resolved links | 
+| tailscale | Match DNS resolvers of the tailnet | 
+| openvpn | Match DNS servers pushed by the VPN server | 
+| openconnect | Match DNS servers pushed by the VPN server | 
+
+`local``dhcp``resolved``tailscale``openvpn``openconnect`#### dns_search_domain
+
+Since sing-box 1.15.0
+
+Match specified DNS servers' search domains.
+
+| Type | Match | 
+| --- | --- |
+| local | Match system search domains | 
+| dhcp | Match search domains from DHCP | 
+| resolved | Match search domains from systemd-resolved links | 
+| tailscale | Match search domains of the tailnet | 
+| openvpn | Match search domains pushed by the VPN server | 
+| openconnect | Match search domains pushed by the VPN server | 
+
+`local``dhcp``resolved``tailscale``openvpn``openconnect`#### source_mac_address
 
 Since sing-box 1.14.0
 
