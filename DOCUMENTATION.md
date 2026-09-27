@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-09-25 03:30:07 UTC
+> Generated on: 2026-09-27 03:44:29 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -226,6 +226,11 @@ with this application without prior consent.
 
 # Change Log
 
+#### 1.15.0-alpha.9
+
+- Update NaiveProxy to 154.0.8037.49-2
+- Fixes and improvements
+
 #### 1.15.0-alpha.8
 
 - Add dns_server_address and dns_search_domain rule items 1
@@ -343,9 +348,6 @@ OpenVPN Client and
 OpenConnect.
 
 3:
-
-Changes to the cache file are now collected in a write buffer and committed in one transaction
-when the buffer is full, on memory pressure, or when sing-box exits.
 
 See Cache File.
 
@@ -524,14 +526,11 @@ sing-box Dashboard.
 `provider: default``provider: dynamic`10:
 
 The new Hysteria Realm service
-is a rendezvous service for Hysteria2 NAT traversal. A Hysteria2 server
-behind NAT registers its STUN-discovered public addresses on a stable
-realm endpoint via the new
-realm inbound field;
-clients query the realm via the new
-realm outbound field to
-learn the server's current addresses and perform UDP hole-punching to
-establish a direct QUIC connection.
+is a rendezvous service for Hysteria2 NAT traversal. Hysteria2 servers behind
+NAT register on the realm via the new
+realm inbound field, and clients
+connect to them through the realm via the new
+realm outbound field.
 realm.ip_version
 restricts realm connections to a single IP version, and
 realm.port_mapping
@@ -586,8 +585,7 @@ ip_version and query_type in DNS rules, together with query_type in
 referenced rule-sets, now take effect on every DNS rule evaluation,
 including matches from internal domain resolutions that do not target a
 specific DNS server (for example a resolve route rule action without
-server set). In earlier versions they were silently ignored in that
-path. Combining these fields with any of the legacy DNS fields deprecated
+server set). Combining these fields with any of the legacy DNS fields deprecated
 in 12 in the same DNS configuration is no longer supported and is
 rejected at startup.
 See Migration.
@@ -617,8 +615,7 @@ disable_optimistic_cache
 field is also available on DNS rule actions and the resolve route rule
 action.
 
-`optimistic``store_dns``disable_optimistic_cache``resolve`This deprecates the independent_cache DNS option (the DNS cache now
-always keys by transport) and the store_rdrc cache file option
+`optimistic``store_dns``disable_optimistic_cache``resolve`This deprecates the independent_cache DNS option and the store_rdrc cache file option
 (replaced by store_dns); both will be removed in sing-box 1.16.0.
 See Migration.
 
@@ -634,9 +631,8 @@ domain_resolver.
 
 The new mDNS DNS server sends queries via
 multicast on the local network. The default
-local DNS server also routes queries for
-*.local. and IPv4/IPv6 link-local reverse zones via mDNS on non-Apple
-platforms (and via the system resolver on Apple), and the new
+local DNS server also resolves
+*.local. and IPv4/IPv6 link-local reverse zones, and the new
 neighbor_domain option
 answers single-label hosts from the
 neighbor resolver.
@@ -670,8 +666,7 @@ The default hijack mode now sets the platform's native interface DNS
 (systemd-resolved on Linux, per-interface DNS on Windows and Apple) and
 installs platform-level DNS hijacking (an iproute2 rule on Linux,
 nftables DNAT when auto_redirect is enabled, WFP filters on Windows when
-strict_route is enabled). Earlier versions did not touch the interface
-DNS or the platform firewall.
+strict_route is enabled).
 
 `dns_mode``dns_address``hijack``systemd-resolved``iproute2``auto_redirect``strict_route`20:
 
@@ -684,11 +679,9 @@ TUN and TProxy inbounds and the WireGuard endpoint.
 
 `udp_mapping``udp_filtering``udp_nat_max`21:
 
-For UDP connections, the first packet is available in pre-match, so protocol
-sniffing runs on it directly and rule matching continues with the sniffed
-metadata.
+The sniff action now works in pre-match for UDP connections.
 
-See Pre-match.
+`sniff`See Pre-match.
 
 22:
 
@@ -703,8 +696,8 @@ previously inlined in each component.
 `http_clients``verify_client_url``http_clients`route.default_http_client
 selects the default client for remote rule-sets. The legacy fallback
 (use the default outbound when http_clients is empty altogether) is
-preserved with a deprecation warning and will be removed in sing-box
-1.16.0, together with the legacy download_detour remote rule-set option.
+deprecated and will be removed in sing-box 1.16.0, together with the legacy
+download_detour remote rule-set option.
 
 `route.default_http_client``http_clients``download_detour`23:
 
@@ -758,9 +751,9 @@ through Schannel via SSPI on Windows build 17763 or later.
 `windows``engine`The new apple value for outbound TLS engine routes the TLS handshake
 through Network.framework, and the new apple
 HTTP client engine routes HTTP
-requests through NSURLSession. The default remains go.
+requests through NSURLSession.
 
-`apple``engine``Network.framework``apple``engine``NSURLSession``go`28:
+`apple``engine``Network.framework``apple``engine``NSURLSession`28:
 
 The new ssh_server field
 runs a Tailscale SSH server on tailnet port 22, with access controlled by the
@@ -787,8 +780,7 @@ The rule-set tag field now accepts a list of
 tags to define multiple rule-sets sharing other options at once, with the
 {tag} placeholder in path or url replaced by each tag. The new
 initial_path option provides
-initial content for remote rule-sets so startup is not blocked by the initial
-download.
+initial content for remote rule-sets.
 
 `tag``{tag}``path``url``initial_path`31:
 
@@ -1035,9 +1027,7 @@ split-DNS resolvers and, when enabled, general pushed resolvers.
 The OpenConnect Client endpoint can now
 submit Fortinet host check results using the new
 fortinet_host_check
-option. This behavior is modeled after openfortivpn and is not an OpenConnect
-feature. sing-box only submits explicitly configured values when requested by
-the Fortinet server and does not collect system information automatically.
+option.
 
 `fortinet_host_check`#### 1.14.0-alpha.48
 
@@ -1379,15 +1369,11 @@ Dial Fields is reverted.
 1:
 
 The new Hysteria Realm service
-is a rendezvous service for Hysteria2 NAT traversal. A Hysteria2 server
-behind NAT registers its STUN-discovered public addresses on a stable
-realm endpoint via the new
-realm inbound field;
-clients query the realm via the new
-realm outbound field to
-learn the server's current addresses and perform UDP hole-punching to
-establish a direct QUIC connection. Once hole-punching succeeds, all
-proxy traffic flows directly between client and server.
+is a rendezvous service for Hysteria2 NAT traversal. Hysteria2 servers behind
+NAT register on the realm via the new
+realm inbound field, and clients
+connect to them through the realm via the new
+realm outbound field.
 
 `realm``realm`#### 1.14.0-alpha.21
 
@@ -1407,21 +1393,16 @@ The default hijack mode now sets the platform's native interface DNS
 (systemd-resolved on Linux, per-interface DNS on Windows and Apple) and
 installs platform-level DNS hijacking (an iproute2 rule on Linux,
 nftables DNAT when auto_redirect is enabled, WFP filters on Windows when
-strict_route is enabled). Earlier versions did not touch the interface
-DNS or the platform firewall.
+strict_route is enabled).
 
 `dns_mode``dns_address``hijack``systemd-resolved``iproute2``auto_redirect``strict_route`2:
 
 The new mDNS DNS server sends queries via
 multicast on the local network. The default
-local DNS server also routes queries for
-*.local. and IPv4/IPv6 link-local reverse zones via mDNS on non-Apple
-platforms (and via the system resolver on Apple), so an explicit mdns
-server is only needed to reference it from
-preferred_by or to use it
-standalone.
+local DNS server also resolves
+*.local. and IPv4/IPv6 link-local reverse zones.
 
-`*.local.``mdns``preferred_by`3:
+`*.local.`3:
 
 The new preferred_by DNS rule
 item matches domains that the listed DNS servers consider their preferred
@@ -1532,23 +1513,16 @@ HTTP/2 and QUIC parameters). Components that make outbound HTTP requests
 DERP verify_client_url, and the Tailscale control_http_client — now
 accept an inline HTTP client object or the tag of an http_clients
 entry, replacing the dial and TLS fields previously inlined in each
-component. When the field is omitted, ACME, Cloudflare Origin CA, DERP
-and Tailscale dial direct (their existing default).
+component.
 
-`http_clients``verify_client_url``control_http_client``http_clients`Remote rule-sets are the only HTTP-using component whose default for an
-omitted http_client has historically resolved to the default outbound,
-not to direct, and a typical configuration contains many of them. To
-avoid repeating the same http_client block in every rule-set,
-route.default_http_client
-selects a default rule-set client by tag and is the only field that
-consults it. If default_http_client is empty and http_clients is
-non-empty, the first entry is used automatically. The legacy fallback
-(use the default outbound when http_clients is empty altogether) is
-preserved with a deprecation warning and will be removed in sing-box
-1.16.0, together with the legacy download_detour remote rule-set
+`http_clients``verify_client_url``control_http_client``http_clients`route.default_http_client
+selects the default HTTP client for remote rule-sets; if empty, the first
+http_clients entry is used. The legacy fallback (use the default outbound
+when http_clients is empty altogether) is deprecated and will be removed in
+sing-box 1.16.0, together with the legacy download_detour remote rule-set
 option and the legacy dialer fields on Tailscale endpoints.
 
-`http_client``http_client``route.default_http_client``default_http_client``http_clients``http_clients``download_detour`2:
+`route.default_http_client``http_clients``http_clients``download_detour`2:
 
 A new apple engine is available on Apple platforms in two independent
 places:
@@ -1559,11 +1533,9 @@ places:
   the TLS handshake through Network.framework for direct TCP TLS
   client connections.
 
-`engine``NSURLSession``engine``Network.framework`The default remains go. Both engines come with additional CGO and
-framework memory overhead and platform restrictions documented on each
-field.
+`engine``NSURLSession``engine``Network.framework`Both engines have platform restrictions documented on each field.
 
-`go`3:
+3:
 
 HTTP/2 and
 QUIC parameters
@@ -1619,8 +1591,7 @@ disable_optimistic_cache
 field is also available on DNS rule actions and the resolve route rule
 action.
 
-`optimistic``store_dns``disable_optimistic_cache``resolve`This deprecates the independent_cache DNS option (the DNS cache now
-always keys by transport) and the store_rdrc cache file option
+`optimistic``store_dns``disable_optimistic_cache``resolve`This deprecates the independent_cache DNS option and the store_rdrc cache file option
 (replaced by store_dns); both will be removed in sing-box 1.16.0.
 See Migration.
 
@@ -1659,8 +1630,7 @@ ip_version and query_type in DNS rules, together with query_type in
 referenced rule-sets, now take effect on every DNS rule evaluation,
 including matches from internal domain resolutions that do not target a
 specific DNS server (for example a resolve route rule action without
-server set). In earlier versions they were silently ignored in that
-path. Combining these fields with any of the legacy DNS fields deprecated
+server set). Combining these fields with any of the legacy DNS fields deprecated
 in 1 in the same DNS configuration is no longer supported and is
 rejected at startup.
 See Migration.
@@ -6035,7 +6005,7 @@ and provides platform-specific functionality, such as TUN transparent proxying.
 
 #### Service
 
-SFW runs sing-box as a system service, so no administrator elevation is required for daily use.
+SFW runs sing-box as a system service.
 
 ### Chore
 
@@ -6344,7 +6314,7 @@ Conflict with optimistic.
 
 Deprecated in sing-box 1.14.0
 
-independent_cache is deprecated and will be removed in sing-box 1.14.0, check Migration.
+independent_cache is deprecated and will be removed in sing-box 1.16.0, check Migration.
 
 `independent_cache`Make each DNS server's cache independent for special purposes. If enabled, will slightly degrade performance.
 
@@ -6730,10 +6700,8 @@ Changes in sing-box 1.14.0
 This field now also applies when a DNS rule is matched from an internal
 domain resolution that does not target a specific DNS server, such as a
 resolve route rule action without a
-server set. In earlier versions, only DNS queries received from a
-client evaluated this field. See
-Migration
-for the full list.
+server set. See
+Migration.
 
 `resolve``server`Setting this field makes the DNS rule incompatible in the same DNS
 configuration with Legacy Address Filter Fields in DNS rules, the Legacy
@@ -6753,10 +6721,8 @@ Changes in sing-box 1.14.0
 This field now also applies when a DNS rule is matched from an internal
 domain resolution that does not target a specific DNS server, such as a
 resolve route rule action without a
-server set. In earlier versions, only DNS queries received from a
-client evaluated this field. See
-Migration
-for the full list.
+server set. See
+Migration.
 
 `resolve``server`Setting this field makes the DNS rule incompatible in the same DNS
 configuration with Legacy Address Filter Fields in DNS rules, the Legacy
@@ -7272,7 +7238,7 @@ immediately; the remaining queries are canceled.
 
 `race`Rules without race still take effect strictly in listed order: while a preceding race rule is
 not yet judged, the action of any other matched rule is held until none of the race rules
-matched. The result may therefore depend on server speed only among race rules.
+matched.
 
 `race`### route
 
@@ -7310,8 +7276,7 @@ Conflict with race. Has no effect without a preceding race rule.
 holds its query until none of the race rules matched.
 
 `route`When speculative is enabled, the query is sent as soon as the rule matches, in parallel with
-the pending race rules, and may be wasted: its response is still used only after none of the
-race rules matched.
+the pending race rules; its response is used only after none of the race rules matched.
 
 `speculative`#### strategy
 
@@ -7389,10 +7354,9 @@ Unlike route, it does not terminate rule evaluation.
 
 `evaluate``match_response``route`Only allowed on top-level DNS rules (not inside logical sub-rules).
 Rules that use match_response or Response Match Fields
-require a preceding top-level rule with evaluate action. A rule's own evaluate action
-does not satisfy this requirement, because matching happens before the action runs.
+require a preceding top-level rule with evaluate action.
 
-`match_response``evaluate``evaluate`#### server
+`match_response``evaluate`#### server
 
 Required
 
@@ -7415,7 +7379,7 @@ Has no effect without a preceding race rule.
 holds its query, and rule matching stops there, until none of the race rules matched.
 
 `evaluate`When speculative is enabled, the query is sent as soon as the rule matches, in parallel with
-the pending race rules, and may be wasted: rule matching continues without waiting for them.
+the pending race rules, and rule matching continues without waiting for them.
 
 `speculative`#### disable_cache
 
@@ -7468,9 +7432,7 @@ Since sing-box 1.14.0
 
 respond terminates rule evaluation and returns the evaluated response from a preceding evaluate action.
 
-`respond``evaluate`This action does not send a new DNS query.
-
-Only allowed after a preceding top-level evaluate rule. If the action is reached without an evaluated response at runtime, the request fails with an error instead of falling through to later rules.
+`respond``evaluate`Only allowed after a preceding top-level evaluate rule. If the action is reached without an evaluated response at runtime, the request fails with an error instead of falling through to later rules.
 
 `evaluate`### route-options
 
@@ -8224,9 +8186,9 @@ Since sing-box 1.14.0
 
 ```
 
-You usually do not need an explicit mdns server in addition to a Local server: the local server already routes queries for *.local. and IPv4/IPv6 link-local reverse zones via mDNS on non-Apple platforms and via the system resolver on Apple platforms. Add an explicit mdns server only when you want to reference it from preferred_by or use it standalone.
+*.local. and IPv4/IPv6 link-local reverse zones are also resolved by the Local server.
 
-`mdns``*.local.``mdns``preferred_by`### Fields
+`*.local.`### Fields
 
 #### interface
 
@@ -8277,9 +8239,7 @@ Required
 
 The tag of the OpenConnect Endpoint.
 
-DNS queries are sent to the resolvers pushed by the VPN server through the OpenConnect endpoint. Pushed split-DNS rules use their dedicated resolvers, while pushed split-DNS and search-domain suffixes use the general pushed resolvers. The most specific matching suffix takes precedence.
-
-Pushed DNS settings are not installed into the operating system.
+DNS queries are sent to the resolvers pushed by the VPN server through the OpenConnect endpoint.
 
 #### accept_default_resolvers
 
@@ -8377,13 +8337,11 @@ Required
 
 The tag of the OpenVPN Client Endpoint.
 
-DNS queries are sent through the endpoint to resolvers pushed by the OpenVPN server. Modern OpenVPN dns server options support plain DNS, DNS over TLS, DNS over HTTPS, custom ports, SNI, and resolve-domains. Only the server group with the lowest priority number is active. Legacy dhcp-option DNS/DNS6 and DOMAIN-ROUTE are used when no modern server group is present.
+DNS queries are sent through the endpoint to resolvers pushed by the OpenVPN server.
 
-`dns server``resolve-domains``dhcp-option DNS``DNS6``DOMAIN-ROUTE`A modern server group overrides legacy DHCP DNS resolver and domain options. A standalone modern dns search-domains option does not remove legacy resolvers. Required DNSSEC validation (dnssec yes) is rejected because this transport does not provide DNSSEC validation.
+Both modern dns options and legacy dhcp-option DNS/DNS6 and DOMAIN-ROUTE options are supported. dnssec yes is not supported.
 
-`dns search-domains``dnssec yes`Pushed DNS settings are not installed into the operating system.
-
-#### accept_default_resolvers
+`dns``dhcp-option DNS``DNS6``DOMAIN-ROUTE``dnssec yes`#### accept_default_resolvers
 
 Use pushed resolvers for queries that do not match a pushed resolve-domains, DOMAIN-ROUTE, or search-domain suffix.
 
@@ -8656,9 +8614,7 @@ Since sing-box 1.14.0
 
 When enabled, single-label queries (e.g. my-device) are retried against each Tailscale search domain until one resolves.
 
-`my-device`Default resolvers are not consulted for single-label queries regardless of accept_default_resolvers.
-
-`accept_default_resolvers`### Examples
+`my-device`### Examples
 
 ```
 {
@@ -9030,9 +8986,7 @@ Available values: 1, 2, 3.
 
 `1``2``3`3 is used by default.
 
-`3`When 1 or 2, IP packets are carried in the TCP stream instead of QUIC datagrams.
-
-`1``2`When 2, QUIC Fields are replaced by HTTP2 Fields.
+`3`When 2, QUIC Fields are replaced by HTTP2 Fields.
 
 `2`### disable_version_fallback
 
@@ -9055,9 +9009,6 @@ The server will route traffic for these prefixes into this endpoint, where it is
 Use system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
-
-The endpoint configures interface addresses and MTU but does not install
-operating-system routes or DNS settings.
 
 If disabled, sing-box uses the internal network stack.
 
@@ -9083,19 +9034,13 @@ When version is 2.
 
 `version``2`See HTTP2 Fields for details.
 
-keep_alive_period is 10s by default.
-
-`keep_alive_period``10s`## QUIC Fields
+## QUIC Fields
 
 When version is 3 (default).
 
 `version``3`See QUIC Fields for details.
 
-keep_alive_period is 10s by default.
-
-`keep_alive_period``10s`initial_packet_size is mtu + 51 by default, so that IP packets up to the tunnel MTU fit into a QUIC datagram. QUIC packets cannot exceed 1452 bytes; with a larger mtu, IP packets that do not fit are answered with ICMP Packet Too Big. If the path cannot carry packets of that size, the QUIC handshake fails and the client falls back to a lower HTTP version.
-
-`initial_packet_size``mtu + 51``mtu`## UDP NAT Fields
+## UDP NAT Fields
 
 See UDP NAT Fields for details.
 
@@ -9204,9 +9149,6 @@ Use system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
 
-The endpoint configures interface addresses and MTU but does not install
-operating-system routes or DNS settings.
-
 If disabled, sing-box uses the internal network stack.
 
 ### name
@@ -9233,9 +9175,7 @@ When version contains 3 (default), HTTP2 Fields are replaced by QUIC Fields.
 
 `version``3`See QUIC Fields for details.
 
-initial_packet_size is mtu + 51 by default, so that IP packets up to the tunnel MTU fit into a QUIC datagram. QUIC packets cannot exceed 1452 bytes; with a larger mtu, IP packets that do not fit are answered with ICMP Packet Too Big.
-
-`initial_packet_size``mtu + 51``mtu`## UDP NAT Fields
+## UDP NAT Fields
 
 See UDP NAT Fields for details.
 
@@ -9450,7 +9390,7 @@ For totp and hotp, this can be a Base32 secret, a base32:-prefixed secret, or an
 
 `totp``hotp``base32:``otpauth://`For stoken, this is the encoded RSA SecurID CTF token content.
 
-`stoken`For oidc, this is the access token value. It is sent only after the VPN server requests HTTP Bearer authentication.
+`stoken`For oidc, this is the access token value.
 
 `oidc`Conflict with token.secret_path.
 
@@ -9496,7 +9436,7 @@ The default is flavor-specific. AnyConnect, Network Connect, Pulse, and F5 use A
 
 Client version reported separately from user_agent when supported by the selected flavor.
 
-`user_agent`v9.21 is used by default. Currently used by AnyConnect XML authentication.
+`user_agent`v9.21 is used by default.
 
 `v9.21`### local_hostname
 
@@ -9506,7 +9446,7 @@ The system hostname is used by default, or localhost if it is unavailable.
 
 `localhost`### mobile
 
-AnyConnect mobile client identity. When configured, all three fields are required and are reported during XML authentication and tunnel establishment.
+AnyConnect mobile client identity. When configured, all three fields are required.
 
 ### mobile.platform_version
 
@@ -9600,13 +9540,11 @@ Conflict with tncc.certificates.certificate.
 
 `tncc.certificates.certificate`### fortinet_host_check
 
-Fortinet hostcheck result override.
+Fortinet hostcheck result override, submitted when requested by the server.
 
-Hostcheck is disabled by default. It is enabled only when fortinet_host_check.hostcheck is non-empty. No operating system, security product, or network interface information is collected automatically.
+Disabled if fortinet_host_check.hostcheck is empty.
 
-`fortinet_host_check.hostcheck`When enabled and a successful Fortinet login response requests hostcheck, both configured values are submitted to the server before the VPN session is used. The values are sent unchanged as application/x-www-form-urlencoded fields.
-
-`application/x-www-form-urlencoded`Some Fortinet servers only request hostcheck from recognized FortiClient user agents. Configure user_agent when required by the server policy.
+`fortinet_host_check.hostcheck`Some Fortinet servers only request hostcheck from recognized FortiClient user agents. Configure user_agent when required by the server policy.
 
 `user_agent`### fortinet_host_check.hostcheck
 
@@ -9614,13 +9552,11 @@ Fortinet hostcheck result string.
 
 The conventional format is <security-status>,<os-version>, for example 0100,10.0.19042. security-status contains four 0 or 1 characters representing, in order, third-party firewall, third-party antivirus, FortiClient firewall, and FortiClient antivirus.
 
-`<security-status>,<os-version>``0100,10.0.19042``security-status``0``1`An empty value disables Fortinet hostcheck, even if fortinet_host_check.check_virtual_desktop is configured.
-
-`fortinet_host_check.check_virtual_desktop`### fortinet_host_check.check_virtual_desktop
+`<security-status>,<os-version>``0100,10.0.19042``security-status``0``1`### fortinet_host_check.check_virtual_desktop
 
 Fortinet virtual desktop check result string.
 
-FortiClient conventionally sends colon-separated MAC addresses joined by |, for example 74:78:27:4d:81:93|84:1b:77:3a:95:84. An empty value is submitted as an empty field when hostcheck is enabled.
+FortiClient conventionally sends colon-separated MAC addresses joined by |, for example 74:78:27:4d:81:93|84:1b:77:3a:95:84.
 
 `|``74:78:27:4d:81:93|84:1b:77:3a:95:84`### no_udp
 
@@ -9638,9 +9574,7 @@ Disable AnyConnect compression negotiation.
 
 By default, stateless oc-lz4 and lzs compression is negotiated for CSTP and DTLS when supported by the server.
 
-`oc-lz4``lzs`Compression can weaken traffic confidentiality when an attacker can influence plaintext sent through the VPN tunnel.
-
-Conflict with compression_mode set to all.
+`oc-lz4``lzs`Conflict with compression_mode set to all.
 
 `compression_mode``all`### compression_mode
 
@@ -9649,11 +9583,9 @@ AnyConnect compression mode, one of:
 - stateless: Advertise stateless oc-lz4 and lzs compression.
 - all: Additionally advertise stateful deflate compression for CSTP.
 
-`stateless``oc-lz4``lzs``all``deflate`stateless is used by default. DTLS always uses stateless compression, including when all is selected.
+`stateless``oc-lz4``lzs``all``deflate`stateless is used by default.
 
-`stateless``all`Stateful compression has additional traffic confidentiality risks and should only be enabled when required by the VPN server.
-
-### ipv6_disabled
+`stateless`### ipv6_disabled
 
 Disable requesting and using IPv6 tunnel configuration.
 
@@ -9669,19 +9601,15 @@ Disable AnyConnect XML POST authentication and start authentication with the leg
 
 Disable external browser authentication such as SSO and SAML for AnyConnect, GlobalProtect, and Fortinet.
 
-When enabled, external authentication is not advertised for AnyConnect or GlobalProtect, and any unexpected external authentication request, including Fortinet SAML, is rejected.
-
 ### password_authentication_disabled
 
 Abort AnyConnect authentication if the server returns a non-success authentication form, matching OpenConnect --no-passwd behavior.
 
-`--no-passwd`This does not affect the other flavors or a session supplied by cookie.
-
-`cookie`### tcp_keep_alive_enabled
+`--no-passwd`### tcp_keep_alive_enabled
 
 Enable TCP keep alive for direct VPN server connections.
 
-Disabled by default to match OpenConnect. Setting tcp_keep_alive or tcp_keep_alive_interval also enables it without requiring this field. When enabled without either duration, the operating system TCP keep alive timing is retained.
+Setting tcp_keep_alive or tcp_keep_alive_interval also enables it. When enabled without either duration, the operating system defaults are used.
 
 `tcp_keep_alive``tcp_keep_alive_interval`Conflict with disable_tcp_keep_alive.
 
@@ -9689,13 +9617,11 @@ Disabled by default to match OpenConnect. Setting tcp_keep_alive or tcp_keep_ali
 
 Require forward-secret TLS cipher suites for TLS 1.2 and earlier.
 
-Disabled by default for compatibility with VPN servers that require RSA key exchange. This does not enable deprecated cipher suites; see allow_insecure_crypto for legacy crypto support.
-
-`allow_insecure_crypto`### mtu
+### mtu
 
 Preferred tunnel MTU.
 
-The negotiated MTU is limited to this value for all flavors. For AnyConnect, this value is also sent to the server. GlobalProtect, F5, and Fortinet remove their protocol overhead before using it as the tunnel MTU.
+The negotiated MTU is limited to this value.
 
 Non-zero values below 576 are treated as 576. The maximum value is 65535.
 
@@ -9717,7 +9643,7 @@ Positive values below 2s are treated as 2s. The value must not be negative.
 
 `2s``2s`### reconnect_timeout
 
-Maximum accumulated backoff time after failed reconnect attempts. The first reconnect attempt starts immediately, and this timeout does not cancel an attempt already in progress.
+Maximum accumulated backoff time after failed reconnect attempts.
 
 300s is used by default.
 
@@ -9735,13 +9661,13 @@ The server-provided interval is used by default. GlobalProtect uses 1h when the 
 
 Inbound and outbound packet queue length between the VPN transport and the tunnel interface.
 
-32 is used by default. A full queue applies backpressure until its consumer makes room; queued packets are not discarded.
+32 is used by default.
 
 `32`### allow_insecure_crypto
 
 Enable weak TLS and DTLS cipher suites and TLS 1.0 compatibility required by legacy VPN servers.
 
-Disabled by default; TLS versions below 1.2 are otherwise rejected. This option does not disable server certificate verification.
+Disabled by default; TLS versions below 1.2 are otherwise rejected.
 
 ### tls
 
@@ -9751,7 +9677,7 @@ OpenConnect TLS configuration.
 
 Disable verification of the VPN server certificate and hostname.
 
-Disabled by default. Enabling this permits an active attacker to impersonate the VPN server. Prefer tls.certificate_authority or tls.peer_fingerprint when possible.
+Disabled by default. Prefer tls.certificate_authority or tls.peer_fingerprint when possible.
 
 `tls.certificate_authority``tls.peer_fingerprint`### tls.server_name
 
@@ -9906,7 +9832,7 @@ Use Tools > Endpoints in the sing-box dashboard or any sing-box graphical client
 
 `Tools``Endpoints`## DNS
 
-Pushed DNS settings are not installed into the operating system. Configure an OpenConnect DNS server to use them through sing-box.
+Configure an OpenConnect DNS server to use the pushed DNS settings.
 
 
 ---
@@ -10041,11 +9967,9 @@ OpenVPN session mode, one of tls or static_key.
 `tls``static_key`tls is used by default.
 
 `tls`static_key is a deprecated OpenVPN mode without a TLS control channel or
-forward secrecy. It is retained as an explicit compatibility option for
-immutable enterprise VPN servers. It does not use tls, username/password
-authentication, pull options, or TLS renegotiation options.
+forward secrecy.
 
-`static_key``tls`### server
+`static_key`### server
 
 OpenVPN server address.
 
@@ -10185,7 +10109,7 @@ OpenVPN control channel TLS configuration.
 
 Expected server certificate name.
 
-Certificate name verification is disabled if empty. The certificate chain or fingerprint and server certificate usage are still verified.
+Certificate name verification is disabled if empty.
 
 ### tls.server_name_type
 
@@ -10243,13 +10167,9 @@ Allowed SHA-256 fingerprints of the server leaf certificate.
 
 Each fingerprint must be 64 lowercase hexadecimal characters without separators.
 
-When a trusted CA is also configured, both the certificate chain and fingerprint are verified. Without a trusted CA, the fingerprint, certificate validity period, configured name, and certificate usage are verified, but the certificate chain is not.
-
 ### tls.crl_path
 
 Path to a PEM or DER certificate revocation list used to reject revoked server certificates.
-
-The CRL signature and validity period are verified against the trusted certificate chain.
 
 Disabled by default.
 
@@ -10292,9 +10212,9 @@ keys for compatibility with immutable peers. Use it only when the peer cannot
 be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
 requires stronger signatures and keys.
 
-`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites. Explicit tls.cipher and tls.groups values are not restricted by the profile.
+`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites.
 
-`suiteb``tls.cipher``tls.cipher``tls.groups`### tls.ns_certificate_type
+`suiteb``tls.cipher`### tls.ns_certificate_type
 
 Deprecated Netscape certificate type check, one of server or client.
 
@@ -10318,7 +10238,7 @@ The value cannot be lower than tls.version_min.
 
 Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
 
-The default TLS cipher suites are used when empty. TLS 1.3 cipher suites are not controlled by this field.
+The default TLS cipher suites are used when empty.
 
 ### tls.groups
 
@@ -10362,15 +10282,13 @@ tls-auth key direction, one of server or client.
 
 Data-channel cipher used in static_key mode.
 
-`static_key`The upstream static-key default BF-CBC is used when empty. BF-CBC is a
-legacy cipher with a 64-bit block size; configure the cipher required by the
-server explicitly whenever possible. Static-key ciphers include BF-CBC,
+`static_key`The upstream static-key default BF-CBC is used when empty. Static-key ciphers include BF-CBC,
 CAST5-CBC, DES-CBC, DES-EDE-CBC, DES-EDE3-CBC, the AES-CBC,
 ARIA-CBC, and Camellia-CBC families, SEED-CBC, SM4-CBC, and NONE.
 
-`BF-CBC``BF-CBC``BF-CBC``CAST5-CBC``DES-CBC``DES-EDE-CBC``DES-EDE3-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode. NONE provides no confidentiality.
+`BF-CBC``BF-CBC``CAST5-CBC``DES-CBC``DES-EDE-CBC``DES-EDE3-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode.
 
-`static_key``NONE`### data_ciphers
+`static_key`### data_ciphers
 
 Allowed OpenVPN data channel ciphers.
 
@@ -10381,8 +10299,7 @@ AES-256-GCM, AES-128-GCM, and CHACHA20-POLY1305 are used by default.
 `AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`The AES-GCM family includes AES-192-GCM. Retained ciphers include the CBC,
 CFB, and OFB forms of AES, ARIA, Camellia, DES, Blowfish, and CAST5, the CBC,
 CFB, and OFB forms of SEED and SM4, and NONE. CFB and OFB are available only
-in TLS mode. Legacy ciphers provide weaker or no confidentiality and are not
-enabled by default.
+in TLS mode.
 
 `AES-192-GCM``NONE`### data_ciphers_fallback
 
@@ -10398,14 +10315,9 @@ OpenVPN data channel authentication digest.
 
 SHA1 is used by default. It only applies to non-AEAD data ciphers and tls_auth.
 
-`SHA1``tls_auth`Legacy digests including MD5 and RIPEMD160 remain available when explicitly
-configured for compatibility.
-
-`MD5``RIPEMD160`### mss_fix
+`SHA1``tls_auth`### mss_fix
 
 Maximum OpenVPN UDP packet size used to clamp the MSS of TCP connections sent through the tunnel.
-
-This prevents TCP packets from exceeding the path MTU after OpenVPN encapsulation.
 
 When empty, the upstream OpenVPN default is used: fragment when configured,
 otherwise 1492 for the default tunnel MTU or the configured tunnel MTU.
@@ -10436,9 +10348,7 @@ Disabled when 0. A non-zero value must be at least 68.
 
 UDP data-channel replay window size. 64 is used by default. The maximum is 65536.
 
-`64``65536`TCP always requires strictly consecutive packet IDs.
-
-### replay_window_time
+`64``65536`### replay_window_time
 
 UDP data-channel replay window duration. 15s is used by default and the maximum is 10m.
 
@@ -10450,21 +10360,17 @@ OpenVPN compress framing mode, one of none, no, lz4, lz4-v2, stub, stub-v2, disa
 
 `compress``none``no``lz4``lz4-v2``stub``stub-v2``disabled``off`Disabled by default.
 
-Compression can weaken traffic confidentiality. Prefer stub or stub-v2 only when framing compatibility is required.
-
-`stub``stub-v2`### compression_lzo
+### compression_lzo
 
 OpenVPN comp-lzo mode, one of none, no, yes, adaptive, asym, disabled, or off.
 
 `comp-lzo``none``no``yes``adaptive``asym``disabled``off`Disabled by default.
 
-Compression can weaken traffic confidentiality. Enable it only when required by the server.
-
 ### allow_compression
 
 Policy for compression pushed by the server, one of no, asym, or yes.
 
-`no``asym``yes`no is used by default and permits only compression stub framing. asym accepts compressed packets from the server but does not compress outgoing packets. For OpenVPN 2.7 compatibility, yes is accepted as a legacy alias for asym; the client never sends compressed packets.
+`no``asym``yes`no is used by default and permits only compression stub framing. asym accepts compressed packets from the server but does not compress outgoing packets. yes is a legacy alias for asym.
 
 `no``asym``yes``asym`Conflict with non-stub compression enabled by compression or compression_lzo when set to no.
 
@@ -10473,9 +10379,7 @@ Policy for compression pushed by the server, one of no, asym, or yes.
 Ignore routes, DNS and DHCP settings, route metrics, redirect-gateway,
 redirect-private, block-ipv6, and block-outside-dns pushed by the server.
 
-`redirect-gateway``redirect-private``block-ipv6``block-outside-dns`Interface configuration, topology, tunnel MTU, route-gateway, and locally configured routes are still used.
-
-`route-gateway`Disabled by default.
+`redirect-gateway``redirect-private``block-ipv6``block-outside-dns`Disabled by default.
 
 ### pull_filters
 
@@ -10505,17 +10409,11 @@ IPv4 and IPv6 prefixes preferred by sing-box routing for this OpenVPN endpoint.
 
 These routes are used in addition to routes accepted from the server.
 
-They do not install operating-system routes. Select the endpoint through
-sing-box route rules or its preferred-route behavior.
-
 ### route_gateway
 
 IPv4 gateway for routes through the OpenVPN endpoint.
 
 When empty, the VPN gateway received from the server is used.
-
-The value is retained for OpenVPN configuration compatibility; endpoint route
-preference is prefix-based and does not install a system gateway route.
 
 ### route_metric
 
@@ -10523,35 +10421,26 @@ Default metric for routes through the OpenVPN endpoint.
 
 The platform default is used when 0.
 
-`0`The value is retained for OpenVPN configuration compatibility and does not
-install a system route.
-
-### redirect_gateway
+`0`### redirect_gateway
 
 Prefer the OpenVPN endpoint for all IPv4 destinations in sing-box routing.
 
 Disabled by default.
-
-This does not install an operating-system default route.
 
 ### redirect_gateway_flags
 
 OpenVPN redirect-gateway flags.
 
 `redirect-gateway`!ipv4 disables IPv4 preference, def1 represents it with two /1
-prefixes, and ipv6 also prefers the upstream-specific IPv6 prefixes. The
-OpenVPN control connection always uses its configured outbound dialer rather
-than endpoint routes, so local and autolocal require no system-route
-exception. bypass-dhcp and bypass-dns are not applicable because sing-box
-does not install pushed DHCP or DNS settings into the operating system.
-block-local is unsupported because the endpoint has no cross-platform source
-for the physical default gateway needed to preserve the gateway exception.
+prefixes, and ipv6 also prefers the upstream-specific IPv6 prefixes.
+local, autolocal, bypass-dhcp and bypass-dns have no effect.
+block-local is not supported.
 
 `!ipv4``def1``/1``ipv6``local``autolocal``bypass-dhcp``bypass-dns``block-local`Empty by default.
 
 ### redirect_private
 
-Accept redirect_gateway_flags without adding a default-route preference. Routes pushed or configured separately still affect the endpoint's preferred addresses, but no operating-system routes are installed.
+Accept redirect_gateway_flags without adding a default-route preference.
 
 `redirect_gateway_flags`Disabled by default.
 
@@ -10627,9 +10516,6 @@ Notifications are sent one second apart. Disabled when 0.
 Use a system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
-
-The endpoint configures interface addresses and MTU but does not install
-operating-system routes or DNS settings.
 
 If disabled, sing-box uses the internal network stack.
 
@@ -10782,9 +10668,6 @@ Use system interface.
 
 Requires privilege and cannot conflict with existing system interfaces.
 
-The endpoint configures interface addresses and MTU but does not install
-operating-system routes or DNS settings.
-
 If disabled, sing-box uses the internal network stack.
 
 ### name
@@ -10806,25 +10689,21 @@ OpenVPN session mode, one of tls or static_key.
 `tls``static_key`tls is used by default.
 
 `tls`static_key serves one peer without a TLS control channel or forward secrecy.
-It is retained as an explicit compatibility option for immutable deployments.
-It does not use tls, users, push options, or TLS renegotiation options.
 
-`static_key``tls``users`### network
+`static_key`### network
 
 OpenVPN transport network, one of udp or tcp.
 
 `udp``tcp`udp will be used by default.
 
 `udp`Only one transport network is served per endpoint; to serve both TCP and UDP,
-configure two endpoints with separate address subnets,
-matching upstream OpenVPN which requires two server processes.
+configure two endpoints with separate address subnets.
 
 `address`### remote
 
 Fixed remote peer address for a UDP static_key server.
 
-`static_key`Required with remote_port in UDP static_key mode. TCP servers accept the
-single peer from the listening socket and do not use this field.
+`static_key`Required with remote_port in UDP static_key mode.
 
 `remote_port``static_key`### remote_port
 
@@ -10836,11 +10715,11 @@ Fixed remote peer port for a UDP static_key server.
 
 Maximum number of established and pending TLS client sessions.
 
-1024 is used by default. The value must be smaller than 16777216, the size of the OpenVPN peer-id space.
+1024 is used by default. The maximum value is 16777215.
 
-`1024``16777216`static_key mode supports one peer, so this value must be 0 or 1.
+`1024``16777215`Must be 0 or 1 in static_key mode.
 
-`static_key``0``1`### address
+`0``1``static_key`### address
 
 Required
 
@@ -10988,9 +10867,7 @@ OpenVPN client certificate policy, one of require, optional or none.
 
 `optional`If set to none, client certificates are not requested.
 
-`none`This field does not replace users; when users is set, username/password authentication is still required.
-
-`users``users`### tls.client_name
+`none`### tls.client_name
 
 Expected client certificate name. Disabled when empty.
 
@@ -11031,9 +10908,9 @@ keys for compatibility with immutable peers. Use it only when the peer cannot
 be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
 requires stronger signatures and keys.
 
-`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites. Explicit tls.cipher and tls.groups values are not restricted by the profile.
+`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites.
 
-`suiteb``tls.cipher``tls.cipher``tls.groups`### tls.ns_certificate_type
+`suiteb``tls.cipher`### tls.ns_certificate_type
 
 Deprecated Netscape certificate type check, one of server or client.
 
@@ -11049,7 +10926,7 @@ Maximum TLS version. The maximum supported version is used by default.
 
 Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
 
-The default TLS cipher suites are used when empty. TLS 1.3 cipher suites are not controlled by this field.
+The default TLS cipher suites are used when empty.
 
 ### tls.groups
 
@@ -11114,9 +10991,9 @@ Data-channel cipher used in static_key mode.
 static-key ciphers are the AES-CBC, ARIA-CBC, Camellia-CBC, DES-CBC,
 Blowfish-CBC, CAST5-CBC families, SEED-CBC, SM4-CBC, and NONE.
 
-`BF-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode. NONE provides no confidentiality.
+`BF-CBC``SEED-CBC``SM4-CBC``NONE`Only available in static_key mode.
 
-`static_key``NONE`### data_ciphers
+`static_key`### data_ciphers
 
 Allowed OpenVPN data channel ciphers.
 
@@ -11125,8 +11002,7 @@ AES-256-GCM, AES-128-GCM and CHACHA20-POLY1305 are used by default.
 `AES-256-GCM``AES-128-GCM``CHACHA20-POLY1305`The AES-GCM family includes AES-192-GCM. Retained ciphers include the CBC,
 CFB, and OFB forms of AES, ARIA, Camellia, DES, Blowfish, and CAST5, the CBC,
 CFB, and OFB forms of SEED and SM4, and NONE. CFB and OFB are available only
-in TLS mode. Legacy ciphers provide weaker or no confidentiality and are not
-enabled by default.
+in TLS mode.
 
 `AES-192-GCM``NONE`Only available in TLS mode.
 
@@ -11144,12 +11020,9 @@ Only available in TLS mode.
 
 OpenVPN data channel authentication digest.
 
-SHA1 will be used by default, matching the upstream default; it only applies to non-AEAD data ciphers and tls_auth.
+SHA1 will be used by default. It only applies to non-AEAD data ciphers and tls_auth.
 
-`SHA1``tls_auth`Legacy digests including MD5 and RIPEMD160 remain available when explicitly
-configured for compatibility.
-
-`MD5``RIPEMD160`### mss_fix
+`SHA1``tls_auth`### mss_fix
 
 Maximum encapsulated packet size used to clamp TCP MSS. The upstream default calculation uses 1492 with the default MTU.
 
@@ -11163,7 +11036,7 @@ Calculation mode for an explicit mss_fix, one of mtu or fixed. Requires mss_fix.
 
 `mss_fix``mtu``fixed``mss_fix`### replay_window
 
-UDP data-channel replay window size. 64 is used by default; TCP packet IDs remain strictly consecutive.
+UDP data-channel replay window size. 64 is used by default.
 
 `64`### replay_window_time
 
@@ -11253,9 +11126,7 @@ Time without receiving a packet after which the server closes the client session
 
 This value applies to the server. Use push.ping_restart to configure clients.
 
-`push.ping_restart`The server timeout should be longer than the client timeout so the client can reconnect before the server discards its session.
-
-The value must use whole seconds.
+`push.ping_restart`The value must use whole seconds.
 
 Disabled by default.
 
@@ -11489,9 +11360,9 @@ Run a Tailscale SSH server on tailnet port 22.
 
 Access is controlled by the SSH ACL in the Tailscale admin console, which maps each connection to a local user. How that user is resolved, and which users are allowed, depends on the platform:
 
-- Linux and macOS: the user is resolved from the system user database. Switching to a user other than the one sing-box runs as requires running as root; without root, sessions are limited to the current user.
-- Windows: in the command line client, sessions run as the sing-box process identity; the mapped user is not impersonated, so a session mapped to a different local account is refused. In the graphical client, there is no such restriction.
-- Android: the user is resolved by the app rather than the system user database. root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory, so the target application must be installed. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access; without root, sessions are limited to the sing-box user.
+- Linux and macOS: switching to a user other than the one sing-box runs as requires running as root.
+- Windows: in the command line client, sessions mapped to a local account other than the one sing-box runs as are refused. In the graphical client, there is no such restriction.
+- Android: root is the superuser (UID 0) and shell is the ADB shell user (UID 2000); every other name is resolved as the package name of an installed application, running as that application's UID with its data directory as the home directory. termux is a shortcut for com.termux, and sing-box for the app's own package name; when Termux is installed, the root and termux users load the Termux environment. Running as the sing-box application itself requires no root, while any other user requires granted root access.
 - macOS: the SSH server is only available in the standalone version and requires the Helper Service; the App Store version is not supported.
 - iOS: the SSH server is only available in the jailbreak build; the App Store and TestFlight versions are not supported.
 - tvOS: not yet supported.
@@ -12775,8 +12646,6 @@ Since sing-box 1.14.0
 
 Register this inbound to a Hysteria Realm rendezvous service to enable NAT traversal.
 
-The inbound discovers its public addresses via STUN, registers them on the realm, and uses UDP hole-punching to accept incoming clients without a publicly reachable listen address.
-
 See Hysteria Realm for the rendezvous service.
 
 #### realm.server_url
@@ -12827,7 +12696,7 @@ Restrict realm connections (STUN, hole punching, and the resulting QUIC path) to
 
 Maintain a UDP port mapping on the local gateway via UPnP or NAT-PMP.
 
-The mapping is established before STUN discovery and improves hole-punching reliability behind gateways that support it; failures are non-fatal.
+Improves hole-punching reliability behind gateways that support it.
 
 Requires IPv4: conflicts with "ip_version": 6.
 
@@ -12843,7 +12712,7 @@ Timeout for gateway discovery and mapping operations.
 
 `10s`#### realm.port_mapping.lifetime
 
-Lease lifetime of the mapping; it is renewed at half the lifetime.
+Lease lifetime of the mapping.
 
 10m is used by default.
 
@@ -13311,9 +13180,9 @@ The pre-shared key.
 Snell users.
 
 When set, the server runs in multi-user mode: each entry has a name (optional, used in
-logs) and a userkey (the user's key). The top-level psk remains the server key.
+logs) and a userkey (the user's key).
 
-`name``userkey``psk`#### obfs_mode
+`name``userkey`#### obfs_mode
 
 Version 5 only
 
@@ -13964,21 +13833,16 @@ How DNS is handled on the TUN interface.
 
 `disabled``native``systemd-resolved``hijack``native`hijack adds the following on top of native:
 
-`hijack``native`On Linux: without address rewriting, only DNS sent to non-local
-destinations can be intercepted. Traffic destined to addresses on the host's
-own interfaces (such as 127.0.0.53 or the host's LAN-side IP) is delivered
-through the kernel local routing table before any user rule applies, and
-OUTPUT NAT cannot redirect packets going through lo.
+`hijack``native`On Linux: DNS sent to addresses on the host's own interfaces (such as
+127.0.0.53 or the host's LAN-side IP) is not hijacked.
 
-`127.0.0.53``local``OUTPUT``lo`- Without auto_redirect, an iproute2 rule makes port 53 skip the main
-  table's specific-route lookup, forcing DNS that would otherwise be
-  delivered through a directly-attached subnet through the TUN. Destination
-  addresses are not rewritten.
-- With auto_redirect, port 53 traffic is redirected directly to
+`127.0.0.53`- Without auto_redirect, port 53 traffic to directly-attached subnets is
+  also routed through the TUN.
+- With auto_redirect, port 53 traffic is redirected to
   dns_address.
 
-`auto_redirect``iproute2``main``auto_redirect``dns_address`On Windows with strict_route: a WFP filter blocks port
-53 traffic going through interfaces other than the TUN.
+`auto_redirect``auto_redirect``dns_address`On Windows with strict_route: port 53 traffic going
+through interfaces other than the TUN is blocked.
 
 `strict_route`#### dns_address
 
@@ -13986,15 +13850,12 @@ Since sing-box 1.14.0
 
 List of DNS server addresses used by dns_mode.
 
-`dns_mode`When unset, sing-box derives one address per family by taking the next IP after
-the first IPv4/IPv6 entry in address. Connections toward those
-derived addresses are additionally hijacked into the sing-box DNS module,
-equivalent to a hijack-dns
-route action; this preserves the behaviour from before this option was added.
+`dns_mode`When unset, the next address after the first IPv4 and IPv6 entry in
+address is used, and connections to it are handled as a
+hijack-dns route action.
 
-`address``hijack-dns`When set, this auto-hijack is not applied; configure an explicit
-hijack-dns route rule if the
-behaviour is still required.
+`address``hijack-dns`When set, configure a hijack-dns
+route rule to handle DNS traffic to these addresses.
 
 `hijack-dns`#### gso
 
@@ -14270,8 +14131,6 @@ Changes in sing-box 1.8.0
 The legacy LWIP stack has been deprecated and removed.
 
 TCP/IP stack.
-
-The following legacy implementations remain available during the deprecation period.
 
 | Stack | Description | 
 | --- | --- |
@@ -14971,8 +14830,6 @@ Interface name for forwarded traffic to egress.
 
 The default interface will be used by default.
 
-Forwarded traffic will be dropped while the interface is unavailable.
-
 #### bridge_name
 
 Custom bridge TUN interface name prefix, bridge is used by default.
@@ -15556,15 +15413,13 @@ Chrome's values, and the receive windows start at Chrome's initial values before
 maximums.
 
 `idle_timeout``max_concurrent_streams``initial_packet_size`Chrome does not declare support for Ed25519, so a server using an Ed25519 certificate will fail the
-handshake. Use an ECDSA or RSA certificate instead; certificates issued by ACME are unaffected.
+handshake. Use an ECDSA or RSA certificate instead.
 
 #### realm
 
 Since sing-box 1.14.0
 
 Connect to a Hysteria2 server through a Hysteria Realm rendezvous service.
-
-The outbound queries the realm for the server's current public addresses, performs UDP hole-punching, and proceeds with the normal QUIC handshake.
 
 Conflicts with server, server_port and server_ports.
 
@@ -15606,7 +15461,7 @@ Restrict realm connections (STUN, hole punching, and the resulting QUIC path) to
 
 Maintain a UDP port mapping on the local gateway via UPnP or NAT-PMP.
 
-The mapping is established before STUN discovery and improves hole-punching reliability behind gateways that support it; failures are non-fatal.
+Improves hole-punching reliability behind gateways that support it.
 
 Requires IPv4: conflicts with "ip_version": 6.
 
@@ -15622,7 +15477,7 @@ Timeout for gateway discovery and mapping operations.
 
 `10s`#### realm.port_mapping.lifetime
 
-Lease lifetime of the mapping; it is renewed at half the lifetime.
+Lease lifetime of the mapping.
 
 10m is used by default.
 
@@ -18499,9 +18354,7 @@ Since sing-box 1.14.0
 
 File path of the initial rule-set content.
 
-Read once at startup when no cached rule-set is available, so startup is not
-blocked by the initial download. The rule-set is still updated in the background
-immediately after startup.
+Used at startup when no cached rule-set is available.
 
 #### http_client
 
@@ -18752,10 +18605,8 @@ Changes in sing-box 1.14.0
 
 When a DNS rule references this rule-set, this field now also applies
 when the DNS rule is matched from an internal domain resolution that
-does not target a specific DNS server. In earlier versions, only DNS
-queries received from a client evaluated this field. See
-Migration
-for the full list.
+does not target a specific DNS server. See
+Migration.
 
 When a DNS rule references a rule-set containing this field, the DNS
 rule is incompatible in the same DNS configuration with Legacy Address
@@ -19006,7 +18857,6 @@ Compatible editors can use it for completion and validation.
 #### $schema
 
 The schema URI used by compatible editors.
-This field does not affect sing-box runtime behavior.
 
 The schema published with this documentation is available at
 sing-box.sagernet.org/schema.json.
@@ -19092,9 +18942,7 @@ It can be accessed by the sing-box graphical clients for iOS, macOS, and
 Android (via the Remote Control feature), or the
 sing-box dashboard.
 
-The server also accepts gRPC-Web requests,
-including the WebSocket transport of @improbable-eng/grpc-web
-for bidirectional streaming methods.
+The server also accepts gRPC-Web requests.
 
 ### Structure
 
@@ -19159,11 +19007,9 @@ Directory the dashboard files are stored in.
 
 dashboard in the working directory will be used by default.
 
-`dashboard`If the directory is empty, the dashboard is downloaded and an .etag file is stored inside
-it to skip unchanged updates. A non-empty directory without an .etag file is served as-is
-and never updated automatically.
+`dashboard`If the directory contains files not downloaded by sing-box, they are served as-is.
 
-`.etag``.etag`##### download_url
+##### download_url
 
 Download URL of the dashboard archive (zip).
 
@@ -19174,8 +19020,6 @@ https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip w
 HTTP client used to download the dashboard.
 
 See HTTP Client Fields for details.
-
-Not used when the dashboard directory contains user-provided files.
 
 ##### update_interval
 
@@ -19498,11 +19342,9 @@ Since sing-box 1.14.0
 
 Hysteria Realm is a rendezvous service for Hysteria2 NAT traversal.
 
-A Hysteria2 server behind NAT registers its STUN-discovered public addresses to a stable realm endpoint; clients query the realm to learn the server's current addresses and perform UDP hole-punching to establish a direct QUIC connection.
+Hysteria2 servers behind NAT register on the realm via the realm inbound field, and clients connect to them through the realm via the realm outbound field.
 
-The realm only carries control-plane signaling. Once hole-punching succeeds, all proxy traffic flows directly between client and server.
-
-### Structure
+`realm``realm`### Structure
 
 ```
 {
@@ -19906,12 +19748,6 @@ The server must be a sing-box (or sing-usbip) server.
 
 ```
 
-Difference from the official USB/IP protocol
-
-sing-box uses sing-usbip, which uses an additional
-set of protocols to support enhancements such as hotplug, while remaining interoperable with
-the standard USB/IP protocol.
-
 ### Dial Fields
 
 See Dial Fields for details.
@@ -19988,12 +19824,6 @@ requires disabling System Integrity Protection). Not available on iOS.
 }
 
 ```
-
-Difference from the official USB/IP protocol
-
-sing-box uses sing-usbip, which uses an additional
-set of protocols to support enhancements such as hotplug, while remaining interoperable with
-the standard USB/IP protocol.
 
 ### Listen Fields
 
@@ -20483,7 +20313,7 @@ Only supported on Linux.
 Set network namespace, name or path.
 
 Since sing-box 1.14.0, the tag of a network namespace can also be used.
-Referencing an unshare network namespace should be avoided, since its only route out is the tun interface managed by sing-box itself.
+Referencing an unshare network namespace should be avoided.
 
 `unshare`#### connect_timeout
 
@@ -20809,8 +20639,7 @@ Values:
 
 `go``apple`apple uses NSURLSession, only available on Apple platforms.
 
-`apple`Experimental only: due to the high memory overhead of both CGO and Network.framework,
-do not use in hot paths on iOS and tvOS.
+`apple`Experimental only: do not use in hot paths on iOS and tvOS.
 
 Supported fields:
 
@@ -21353,8 +21182,7 @@ otherwise connections will be rejected.
 
 Since sing-box 1.14.0
 
-For UDP connections, the first packet is available in pre-match,
-so protocol sniffing runs on it directly and rule matching continues with the sniffed metadata.
+For UDP connections, sniffing runs on the first packet and rule matching continues with the sniffed metadata.
 
 When sniffers require more data (like a fragmented QUIC Client Hello), pre-match stops at that rule.
 
@@ -21701,35 +21529,11 @@ Values:
 
 `disable_sni``cipher_suites``curve_preferences``client_certificate``client_certificate_path``client_key``client_key_path``fragment``record_fragment``kernel_tx``kernel_rx``ech``utls``reality`windows uses Schannel via SSPI. Only available on Windows build 17763 or later (Windows 10 version 1809, Windows Server 2019, or newer).
 
-`windows`TLS 1.3 is only negotiated on Windows 11 or Windows Server 2022 and newer. On older Windows versions, Schannel caps the connection at TLS 1.2 even when max_version is 1.3.
+`windows`TLS 1.3 is only negotiated on Windows 11 or Windows Server 2022 and newer.
 
-`max_version``1.3`The default version range is TLS 1.2 to TLS 1.3, matching the go engine.
+The default version range is TLS 1.2 to TLS 1.3, matching the go engine.
 
-`go`Supported fields:
-
-- server_name
-- insecure
-- alpn
-- min_version
-- max_version
-- certificate / certificate_path
-- certificate_sha256
-- certificate_public_key_sha256
-- handshake_timeout
-
-`server_name``insecure``alpn``min_version``max_version``certificate``certificate_path``certificate_sha256``certificate_public_key_sha256``handshake_timeout`Unsupported fields:
-
-- disable_sni
-- cipher_suites
-- curve_preferences
-- client_certificate / client_certificate_path / client_key / client_key_path
-- fragment / record_fragment
-- kernel_tx / kernel_rx
-- ech
-- utls
-- reality
-
-`disable_sni``cipher_suites``curve_preferences``client_certificate``client_certificate_path``client_key``client_key_path``fragment``record_fragment``kernel_tx``kernel_rx``ech``utls``reality`#### disable_sni
+`go`#### disable_sni
 
 Client only
 
@@ -21808,8 +21612,7 @@ Client only
 
 List of SHA-256 hashes of server certificates, in base64 format.
 
-The hash is computed over the whole DER-encoded certificate, so it changes whenever the certificate is renewed,
-even when the key stays the same. Use certificate_public_key_sha256 when only the key should be pinned.
+The hash is computed over the whole DER-encoded certificate. Use certificate_public_key_sha256 to pin only the public key.
 
 `certificate_public_key_sha256`To generate the SHA-256 hash for a certificate, use the following commands:
 
@@ -22162,18 +21965,10 @@ Only supported on Linux, macOS, and Windows, and requires elevated privileges.
 Inject a forged TLS ClientHello carrying a whitelisted SNI before the real one,
 to fool SNI-filtering middleboxes that permit specific hostnames.
 
-The forged segment is a copy of the real ClientHello with only the SNI value
-replaced by the value of this field, so TLS fingerprinting cannot distinguish
-it from the real one. The receiving server drops the forged segment
-(see spoof_method) while the middlebox treats it as a legitimate session.
+Requires CAP_NET_RAW and CAP_NET_ADMIN on Linux, root on macOS, and
+Administrator on Windows. Windows on ARM64 is not supported.
 
-`spoof_method`Requires raw-socket access (CAP_NET_RAW on Linux, root on macOS);
-on Linux, CAP_NET_ADMIN is additionally required because the send sequence
-number is read via TCP_REPAIR.
-On Windows, Administrator is required to install the embedded WinDivert kernel
-driver on first use. Windows on ARM64 is not supported.
-
-`CAP_NET_RAW``CAP_NET_ADMIN``TCP_REPAIR`#### spoof_method
+`CAP_NET_RAW``CAP_NET_ADMIN`#### spoof_method
 
 Since sing-box 1.14.0
 
@@ -22186,8 +21981,8 @@ How the forged segment is rejected by the real server.
 | wrong-sequence (default) | The forged segment's TCP sequence number is placed before the server's receive window. | 
 | wrong-checksum | The forged segment's TCP checksum is deliberately invalid. | 
 | wrong-ack | The forged segment's TCP acknowledgment number is placed before the server's send window. | 
-| wrong-md5 | The forged segment carries a TCP-MD5 signature option, which the server rejects since no MD5 key is negotiated. | 
-| wrong-timestamp | The forged segment carries a backdated TCP timestamp, which the server rejects as a PAWS replay. Linux/Windows only; not supported on macOS. | 
+| wrong-md5 | The forged segment carries a TCP-MD5 signature option. | 
+| wrong-timestamp | The forged segment carries a backdated TCP timestamp. Linux/Windows only; not supported on macOS. | 
 
 `wrong-sequence``wrong-checksum``wrong-ack``wrong-md5``wrong-timestamp`### ACME Fields
 
@@ -22815,8 +22610,7 @@ check Migration.
 
 #### independent_cache DNS option
 
-`independent_cache`independent_cache DNS option is deprecated.
-The DNS cache now always keys by transport, making this option unnecessary,
+`independent_cache`independent_cache DNS option is deprecated,
 check Migration.
 
 `independent_cache`Old fields will be removed in sing-box 1.16.0.
@@ -23033,10 +22827,10 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | with_ocm |  | Build with OpenAI Codex Multiplexer service support. | 
 | with_naive_outbound |  | Build with NaiveProxy outbound support, see NaiveProxy outbound. | 
 | with_cloudflared |  | Build with Cloudflare Tunnel inbound support, see Cloudflared inbound. | 
-| badlinkname |  | Enable go:linkname access to internal standard library functions. Required because the Go standard library does not expose many low-level APIs needed by this project, and reimplementing them externally is impractical. Used for kTLS (kernel TLS offload) and raw TLS record manipulation. | 
-| tfogo_checklinkname0 |  | Companion to badlinkname. Go 1.23+ enforces go:linkname restrictions via the linker; this tag signals the build uses -checklinkname=0 to bypass that enforcement. | 
+| badlinkname |  | Enable go:linkname access to internal standard library functions. | 
+| tfogo_checklinkname0 |  | Indicates the build uses the -checklinkname=0 linker flag. Required together with badlinkname. | 
 
-`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``gvisor``mixed``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``with_cloudflared``badlinkname``go:linkname``tfogo_checklinkname0``badlinkname``go:linkname``-checklinkname=0`It is not recommended to change the default build tag list unless you really know what you are adding.
+`with_quic``with_grpc``with_dhcp``with_wireguard``with_utls``with_acme``with_clash_api``with_v2ray_api``with_gvisor``gvisor``mixed``with_embedded_tor``with_tailscale``with_ccm``with_ocm``with_naive_outbound``with_cloudflared``badlinkname``go:linkname``tfogo_checklinkname0``-checklinkname=0``badlinkname`It is not recommended to change the default build tag list unless you really know what you are adding.
 
 ##  Linker Flags
 
@@ -23044,9 +22838,9 @@ The required linker flags for official builds are maintained in release/LDFLAGS.
 
 `release/LDFLAGS`| Flag | Description | 
 | --- | --- |
-| -checklinkname=0 | Go 1.23+ linker rejects unauthorized go:linkname usage. This flag disables the check, required together with the badlinkname build tag. | 
+| -checklinkname=0 | Required together with the badlinkname build tag. | 
 
-`-checklinkname=0``go:linkname``badlinkname`##  For Downstream Packagers
+`-checklinkname=0``badlinkname`##  For Downstream Packagers
 
 The default build tag lists and linker flags are available as files in the repository for downstream packagers to reference directly:
 
@@ -24399,10 +24193,7 @@ Remove the stack option to use it.
 
 `stack`The stack option is deprecated in sing-box 1.15.0 and will be removed in sing-box 1.17.0.
 
-`stack`Starting with sing-box 1.16.0, the command-line client requires ENABLE_DEPRECATED_TUN_STACK=true
-to continue using this option.
-
-`ENABLE_DEPRECATED_TUN_STACK=true````
+`stack````
 {
   "inbounds": [
     {
@@ -24531,9 +24322,10 @@ Certificate Provider
 Legacy Address Filter Fields (ip_cidr, ip_is_private without match_response) in DNS rules are deprecated,
 along with the Legacy rule_set_ip_cidr_accept_empty DNS rule item. A DNS rule that references a rule-set
 containing only ip_cidr items (for example, a GeoIP rule-set) without match_response is also rejected
-at startup when legacy DNS mode is disabled.
+at startup when DNS rules use features added in sing-box 1.14.0, such as evaluate, match_response
+or ip_version.
 
-`ip_cidr``ip_is_private``match_response``rule_set_ip_cidr_accept_empty``ip_cidr``match_response`In sing-box 1.14.0, use the evaluate action
+`ip_cidr``ip_is_private``match_response``rule_set_ip_cidr_accept_empty``ip_cidr``match_response``evaluate``match_response``ip_version`In sing-box 1.14.0, use the evaluate action
 to fetch a DNS response, then match against it explicitly with match_response.
 
 `evaluate``match_response`References
@@ -24586,8 +24378,7 @@ DNS Rule Action
 
 ### Migrate independent DNS cache
 
-The DNS cache now always keys by transport name, making independent_cache unnecessary.
-Simply remove the field.
+independent_cache is deprecated, remove the field.
 
 `independent_cache`References
 
@@ -24650,33 +24441,12 @@ query_type in DNS rules, together with
 query_type in referenced
 rule-sets, changes in two ways.
 
-`ip_version``query_type``query_type`First, these fields now take effect on every DNS rule evaluation. In earlier
-versions they were evaluated only for DNS queries received from a client
-(for example, from a DNS inbound or intercepted by tun), and were silently
-ignored when a DNS rule was matched from an internal domain resolution that
-did not target a specific DNS server. Such internal resolutions include:
+`ip_version``query_type``query_type`First, these fields now also take effect when a DNS rule is matched from an
+internal domain resolution that does not target a specific DNS server, such as
+the resolve route rule action
+without a server set.
 
-`tun`- The resolve route rule
-  action without a server set.
-- ICMP traffic routed to a domain destination through a direct outbound.
-- A WireGuard or
-  Tailscale endpoint used as an
-  outbound, when resolving its own destination address.
-- A SOCKS4 outbound, which must resolve
-  the destination locally because the protocol has no in-protocol domain
-  support.
-- The DERP bootstrap-dns endpoint and the
-  resolved service (when resolving a
-  hostname or an SRV target).
-
-`resolve``server``direct``bootstrap-dns``resolved`Resolutions that target a specific DNS server — via
-domain_resolver on a dial
-field, default_domain_resolver
-in route options, or an explicit server on a DNS rule action or the
-resolve route rule action — do not go through DNS rule matching and are
-unaffected.
-
-`domain_resolver``default_domain_resolver``server``resolve`Second, setting ip_version or query_type in a DNS rule, or referencing a
+`resolve``server`Second, setting ip_version or query_type in a DNS rule, or referencing a
 rule-set containing query_type, is no longer compatible in the same DNS
 configuration with Legacy Address Filter Fields in DNS rules, the Legacy
 strategy DNS rule action option, or the Legacy rule_set_ip_cidr_accept_empty
