@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-10-03 03:51:54 UTC
+> Generated on: 2026-10-05 04:07:49 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -225,6 +225,10 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.10
+
+- Fixes and improvements
 
 #### 1.15.0-alpha.9
 
@@ -5864,8 +5868,6 @@ characteristics through dex class path and other means, there will be almost no 
 SFI/SFM/SFT allows users to manage and run local or remote sing-box configuration files, and provides
 platform-specific function implementation, such as TUN transparent proxy implementation.
 
-We are temporarily unable to update sing-box apps on the App Store because the reviewer mistakenly found that we violated the rules (TestFlight users are not affected).
-
 ##  Requirements
 
 - iOS 15.0+ / macOS 13.0+ / Apple tvOS 17.0+
@@ -5873,7 +5875,7 @@ We are temporarily unable to update sing-box apps on the App Store because the r
 
 ##  Download
 
-- App Store
+- App Store (iOS / Apple tvOS)
 - TestFlight (Beta)
 
 TestFlight quota is only available to sponsors
