@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-10-09 04:38:30 UTC
+> Generated on: 2026-10-11 04:04:38 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -225,6 +225,14 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.11
+
+- Fixes and improvements
+
+#### 1.14.3
+
+- Fixes and improvements
 
 #### 1.15.0-alpha.10
 
@@ -5885,9 +5893,16 @@ or sending us your Apple ID via email.
 
 ##  Download (iOS jailbreak version)
 
-- GitHub Releases (SFI-iphoneos-arm64.deb)
+- GitHub Releases
+SFI-iphoneos-arm64.deb: rootless
+SFI-iphoneos-arm64e.deb: roothide
+- SFI-iphoneos-arm64.deb: rootless
+- SFI-iphoneos-arm64e.deb: roothide
 
-`SFI-iphoneos-arm64.deb`The jailbroken version of SFI: requires rootless iOS 15.0+
+- SFI-iphoneos-arm64.deb: rootless
+- SFI-iphoneos-arm64e.deb: roothide
+
+`SFI-iphoneos-arm64.deb``SFI-iphoneos-arm64e.deb`The jailbroken version of SFI: requires rootless or roothide iOS 15.0+
 
 Additional features:
 
@@ -13831,9 +13846,11 @@ How DNS is handled on the TUN interface.
 | --- | --- |
 | disabled | Do not configure native DNS and do not hijack DNS traffic. | 
 | native | Set the platform's native interface DNS where possible: per-interface DNS on Windows and Apple platforms, and systemd-resolved interface DNS on Linux. | 
-| hijack | Same as native, with additional port 53 hijacking described below. Used by default. | 
+| hijack | Same as native, with additional port 53 hijacking described below. | 
 
-`disabled``native``systemd-resolved``hijack``native`hijack adds the following on top of native:
+`disabled``native``systemd-resolved``hijack``native`hijack is used by default when auto_route is enabled, otherwise disabled is used by default.
+
+`hijack``auto_route``disabled`hijack adds the following on top of native:
 
 `hijack``native`On Linux: DNS sent to addresses on the host's own interfaces (such as
 127.0.0.53 or the host's LAN-side IP) is not hijacked.
