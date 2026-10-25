@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-10-23 03:27:07 UTC
+> Generated on: 2026-10-25 03:16:04 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -30,7 +30,7 @@
 - [Unshare](#unshare)
 - [NTP](#ntp)
 - [rule-set](#rule-set)
-- [AdGuard DNS Filer](#adguard-dns-filer)
+- [AdGuard DNS Filter](#adguard-dns-filter)
 - [Headless Rule](#headless-rule)
 - [Source Format](#source-format)
 - [JSON Schema](#json-schema)
@@ -225,6 +225,14 @@ with this application without prior consent.
 **Source URL**: <https://sing-box.sagernet.org/changelog/>
 
 # Change Log
+
+#### 1.15.0-alpha.13
+
+- Fixes and improvements
+
+#### 1.14.4
+
+- Fixes and improvements
 
 #### 1.15.0-alpha.12
 
@@ -6422,7 +6430,7 @@ Legacy fake-ip configuration is deprecated in sing-box 1.12.0 and removed in sin
 {
   "enabled": true,
   "inet4_range": "198.18.0.0/15",
-  "inet6_range": "fc00::/18"
+  "inet6_range": "2001:2::/48"
 }
 
 ```
@@ -7675,7 +7683,7 @@ Since sing-box 1.12.0
         "tag": "",
 
         "inet4_range": "198.18.0.0/15",
-        "inet6_range": "fc00::/18"
+        "inet6_range": "2001:2::/48"
       }
     ]
   }
@@ -7689,7 +7697,7 @@ Since sing-box 1.12.0
 
 IPv4 address range for FakeIP.
 
-#### inet6_address
+#### inet6_range
 
 IPv6 address range for FakeIP.
 
@@ -14107,9 +14115,9 @@ Conflict with route.default_mark and [dialOptions].routing_mark.
 Add the destination IP CIDR rules in the specified rule-sets to routes, equivalent to adding to route_address.
 Unmatched traffic will bypass the sing-box routes.
 
-`route_address`Note that it doesn't work on the Android graphical client due to
-the Android VpnService not being able to handle a large number of routes (DeadSystemException),
-but otherwise it works fine on all command line clients and Apple platforms.
+`route_address`Note that it doesn't work on the Android and Apple graphical clients
+as they cannot handle a large number of routes,
+but otherwise it works fine on all command line clients and the Linux and Windows graphical clients.
 
 #### route_exclude_address_set
 
@@ -14125,9 +14133,9 @@ Since sing-box 1.11.0
 Add the destination IP CIDR rules in the specified rule-sets to routes, equivalent to adding to route_exclude_address.
 Matched traffic will bypass the sing-box routes.
 
-`route_exclude_address`Note that it doesn't work on the Android graphical client due to
-the Android VpnService not being able to handle a large number of routes (DeadSystemException),
-but otherwise it works fine on all command line clients and Apple platforms.
+`route_exclude_address`Note that it doesn't work on the Android and Apple graphical clients
+as they cannot handle a large number of routes,
+but otherwise it works fine on all command line clients and the Linux and Windows graphical clients.
 
 #### endpoint_independent_nat
 
@@ -18415,11 +18423,11 @@ download_detour is deprecated in sing-box 1.14.0 and will be removed in sing-box
 
 ---
 
-## AdGuard DNS Filer
+## AdGuard DNS Filter
 
 **Source URL**: <https://sing-box.sagernet.org/configuration/rule-set/adguard/>
 
-# AdGuard DNS Filer
+# AdGuard DNS Filter
 
 Since sing-box 1.10.0
 
@@ -23900,7 +23908,7 @@ flowchart TB
         "tag": "remote",
         "type": "fakeip",
         "inet4_range": "198.18.0.0/15",
-        "inet6_range": "fc00::/18"
+        "inet6_range": "2001:2::/48"
       }
     ],
     "rules": [
@@ -24741,7 +24749,7 @@ Legacy DNS Server
     "fakeip": {
       "enabled": true,
       "inet4_range": "198.18.0.0/15",
-      "inet6_range": "fc00::/18"
+      "inet6_range": "2001:2::/48"
     }
   }
 }
@@ -24760,7 +24768,7 @@ Legacy DNS Server
         "type": "fakeip",
         "tag": "fakeip",
         "inet4_range": "198.18.0.0/15",
-        "inet6_range": "fc00::/18"
+        "inet6_range": "2001:2::/48"
       }
     ],
     "rules": [
