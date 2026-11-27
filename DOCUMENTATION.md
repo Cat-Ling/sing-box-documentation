@@ -1,7 +1,7 @@
 # Sing-Box Configuration Documentation
 
 > **This documentation was generated automatically**
-> Generated on: 2026-11-25 07:02:37 UTC
+> Generated on: 2026-11-27 06:47:41 UTC
 > Source: https://sing-box.sagernet.org
 
 ---
@@ -226,7 +226,37 @@ with this application without prior consent.
 
 # Change Log
 
-#### 1.15.0-alpha.13
+#### 1.15.0-alpha.14
+
+- Drop support for go1.25 1
+- Fix Linux desktop client package conflicting with the CLI package 2
+- Update quic-go to v0.66.0
+- Update tailscale to v1.106.1
+- Fixes and improvements
+
+1:
+
+Due to maintenance difficulties, sing-box 1.15.0 requires at least Go 1.26.11 to compile.
+
+2:
+
+The Linux desktop client (SFL) package has been renamed from sing-box to sfl and no longer
+installs /usr/bin/sing-box. Existing SFL users must remove the old sing-box package once before installing the new
+package (daemon data in /var/lib/sing-box-daemon is preserved).
+
+`SFL``sing-box``sfl``/usr/bin/sing-box``sing-box``/var/lib/sing-box-daemon`#### 1.14.5
+
+- Update NaiveProxy to 154.0.8037.49-2
+- Fix Linux desktop client package conflicting with the CLI package 1
+- Fixes and improvements
+
+1:
+
+The Linux desktop client (SFL) package has been renamed from sing-box to sfl and no longer
+installs /usr/bin/sing-box. Existing SFL users must remove the old sing-box package once before installing the new
+package (daemon data in /var/lib/sing-box-daemon is preserved).
+
+`SFL``sing-box``sfl``/usr/bin/sing-box``sing-box``/var/lib/sing-box-daemon`#### 1.15.0-alpha.13
 
 - Fixes and improvements
 
@@ -6311,11 +6341,11 @@ cache_capacity
 
 | Key | Format | 
 | --- | --- |
-| server | List of DNS Server | 
+| servers | List of DNS Server | 
 | rules | List of DNS Rule | 
 | fakeip |  FakeIP | 
 
-`server``rules``fakeip`#### final
+`servers``rules``fakeip`#### final
 
 Default dns server tag.
 
@@ -6392,9 +6422,9 @@ Default timeout for each DNS query.
 
 10s is used by default.
 
-`10s`Can be overridden by rules.[].timeout (DNS rule action) or domain_resolver.timeout.
+`10s`Can be overridden by rules.[].timeout (DNS rule action), resolve.timeout (route rule action) or domain_resolver.timeout.
 
-`rules.[].timeout``domain_resolver.timeout`#### reverse_mapping
+`rules.[].timeout``resolve.timeout``domain_resolver.timeout`#### reverse_mapping
 
 Stores a reverse mapping of IP addresses after responding to a DNS query in order to provide domain names when routing.
 
@@ -6409,9 +6439,9 @@ Append a edns0-subnet OPT extra record with the specified IP prefix to every que
 
 `edns0-subnet`If value is an IP address instead of prefix, /32 or /128 will be appended automatically.
 
-`/32``/128`Can be overridden by servers.[].client_subnet or rules.[].client_subnet.
+`/32``/128`Can be overridden by rules.[].client_subnet (DNS rule action), resolve.client_subnet (route rule action) or domain_resolver.client_subnet.
 
-`servers.[].client_subnet``rules.[].client_subnet`
+`rules.[].client_subnet``resolve.client_subnet``domain_resolver.client_subnet`
 ---
 
 ## FakeIP
@@ -10241,9 +10271,9 @@ keys for compatibility with immutable peers. Use it only when the peer cannot
 be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
 requires stronger signatures and keys.
 
-`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites.
+`insecure``legacy``preferred`When suiteb is selected, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites when tls.cipher is empty, and the TLS groups default to secp256r1 and secp384r1 when tls.groups is empty.
 
-`suiteb``tls.cipher`### tls.ns_certificate_type
+`suiteb``tls.cipher``secp256r1``secp384r1``tls.groups`### tls.ns_certificate_type
 
 Deprecated Netscape certificate type check, one of server or client.
 
@@ -10265,17 +10295,17 @@ The value cannot be lower than tls.version_min.
 
 `tls.version_min`### tls.cipher
 
-Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
+Colon-separated OpenSSL or IANA cipher suite names allowed for TLS 1.2 and earlier, such as ECDHE-ECDSA-AES256-GCM-SHA384 or TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384. The order of the list is ignored.
 
-The default TLS cipher suites are used when empty.
+`ECDHE-ECDSA-AES256-GCM-SHA384``TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384`The default TLS cipher suites are used when empty.
 
 ### tls.groups
 
-Colon-separated TLS key exchange groups in preference order.
+Colon-separated TLS key exchange groups. The order of the list is ignored.
 
-Supported groups are X25519, SECP256R1, SECP384R1, and SECP521R1, including their common OpenSSL and NIST aliases.
+Supported groups are X25519, X25519MLKEM768, secp256r1, secp384r1, and secp521r1, including their common OpenSSL and NIST aliases. Names are case-insensitive.
 
-`X25519``SECP256R1``SECP384R1``SECP521R1`The default TLS groups are used when empty.
+`X25519``X25519MLKEM768``secp256r1``secp384r1``secp521r1`The default TLS groups are used when empty.
 
 ### tls.control_wrap
 
@@ -10937,9 +10967,9 @@ keys for compatibility with immutable peers. Use it only when the peer cannot
 be upgraded. legacy accepts SHA-1 but rejects MD5 signatures; preferred
 requires stronger signatures and keys.
 
-`insecure``legacy``preferred`When suiteb is selected and tls.cipher is empty, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites.
+`insecure``legacy``preferred`When suiteb is selected, the TLS 1.2 cipher list defaults to the Suite B ECDHE-ECDSA AES-GCM suites when tls.cipher is empty, and the TLS groups default to secp256r1 and secp384r1 when tls.groups is empty.
 
-`suiteb``tls.cipher`### tls.ns_certificate_type
+`suiteb``tls.cipher``secp256r1``secp384r1``tls.groups`### tls.ns_certificate_type
 
 Deprecated Netscape certificate type check, one of server or client.
 
@@ -10953,13 +10983,17 @@ Maximum TLS version. The maximum supported version is used by default.
 
 ### tls.cipher
 
-Colon-separated OpenSSL cipher suite names allowed for TLS 1.2 and earlier.
+Colon-separated OpenSSL or IANA cipher suite names allowed for TLS 1.2 and earlier, such as ECDHE-ECDSA-AES256-GCM-SHA384 or TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384. The order of the list is ignored.
 
-The default TLS cipher suites are used when empty.
+`ECDHE-ECDSA-AES256-GCM-SHA384``TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384`The default TLS cipher suites are used when empty.
 
 ### tls.groups
 
-Colon-separated TLS key exchange groups in preference order.
+Colon-separated TLS key exchange groups. The order of the list is ignored.
+
+Supported groups are X25519, X25519MLKEM768, secp256r1, secp384r1, and secp521r1, including their common OpenSSL and NIST aliases. Names are case-insensitive.
+
+`X25519``X25519MLKEM768``secp256r1``secp384r1``secp521r1`The default TLS groups are used when empty.
 
 ### tls.control_wrap
 
@@ -13608,6 +13642,7 @@ Changes in sing-box 1.15.0
 
 auto_redirect_tproxy_mark
  multi_queue
+ route_address_set
  stack
 
 Changes in sing-box 1.14.0
@@ -13694,10 +13729,10 @@ Only supported on Linux, Windows and macOS.
   "iproute2_table_index": 2022,
   "iproute2_rule_index": 9000,
   "auto_redirect": true,
-  "auto_redirect_input_mark": "0x2023",
-  "auto_redirect_output_mark": "0x2024",
-  "auto_redirect_reset_mark": "0x2025",
-  "auto_redirect_tproxy_mark": "0x2026",
+  "auto_redirect_input_mark": "0x04000000",
+  "auto_redirect_output_mark": "0x08000000",
+  "auto_redirect_reset_mark": "0x10000000",
+  "auto_redirect_tproxy_mark": "0x0c000000",
   "auto_redirect_nfqueue": 100,
   "auto_redirect_iproute2_fallback_rule_index": 32768,
   "exclude_mptcp": false,
@@ -13791,9 +13826,7 @@ Only supported on Linux, Windows and macOS.
   ],
   "inet6_route_exclude_address": [
     "fc00::/7"
-  ],
-  ...
-  // Listen Fields
+  ]
 }
 
 ```
@@ -13959,33 +13992,33 @@ Since sing-box 1.10.0
 
 Connection input mark used by auto_redirect.
 
-`auto_redirect`0x2023 is used by default (0x400000 on Android).
+`auto_redirect`0x04000000 is used by default.
 
-`0x2023``0x400000`#### auto_redirect_output_mark
+`0x04000000`#### auto_redirect_output_mark
 
 Since sing-box 1.10.0
 
 Connection output mark used by auto_redirect.
 
-`auto_redirect`0x2024 is used by default (0x200000 on Android).
+`auto_redirect`0x08000000 is used by default.
 
-`0x2024``0x200000`#### auto_redirect_reset_mark
+`0x08000000`#### auto_redirect_reset_mark
 
 Since sing-box 1.13.0
 
 Connection reset mark used by auto_redirect pre-matching.
 
-`auto_redirect`0x2025 is used by default (0x600000 on Android).
+`auto_redirect`0x10000000 is used by default.
 
-`0x2025``0x600000`#### auto_redirect_tproxy_mark
+`0x10000000`#### auto_redirect_tproxy_mark
 
 Since sing-box 1.15.0
 
 Connection TPROXY mark used by the auto_redirect iptables backend for IPv6 TCP.
 
-`auto_redirect`0x2026 is used by default (0x800000 on Android).
+`auto_redirect`0x0c000000 is used by default.
 
-`0x2026``0x800000`#### auto_redirect_nfqueue
+`0x0c000000`#### auto_redirect_nfqueue
 
 Since sing-box 1.13.0
 
@@ -14105,10 +14138,10 @@ use route_exclude_address instead.
 
 Only supported on Linux and requires auto_route and auto_redirect enabled.
 
-`auto_route``auto_redirect`Match the destination IP CIDR rules in the specified rule-sets during pre-matching.
+`auto_route``auto_redirect`Match the destination IP CIDR rules in the specified rule-sets and route_address during pre-matching.
 Unmatched traffic will bypass the sing-box routes.
 
-Conflict with route.default_mark and [dialOptions].routing_mark.
+`route_address`Conflict with route.default_mark and [dialOptions].routing_mark.
 
 `route.default_mark``[dialOptions].routing_mark`Since sing-box 1.11.0
 
@@ -14157,7 +14190,10 @@ See Migration.
 Since 1.15.0, sing-tun uses its own TCP/IP stack, with substantial improvements over all previous
 implementations in peak performance, energy efficiency, and memory usage.
 
-Changes in sing-box 1.8.0
+The gvisor and mixed stacks require the with_gvisor build tag,
+which is no longer included by default.
+
+`gvisor``mixed``with_gvisor`Changes in sing-box 1.8.0
 
 The legacy LWIP stack has been deprecated and removed.
 
@@ -14287,10 +14323,6 @@ Hostnames that use the HTTP proxy.
 ### UDP NAT Fields
 
 See UDP NAT Fields for details.
-
-### Listen Fields
-
-See Listen Fields for details.
 
 
 ---
@@ -18021,15 +18053,7 @@ See Dial Fields for details.
 Only take effect if outbound is direct without outbound.bind_interface,
 outbound.inet4_bind_address and outbound.inet6_bind_address set.
 
-`outbound.bind_interface``outbound.inet4_bind_address``outbound.inet6_bind_address`#### network_type
-
-See Dial Fields for details.
-
-#### fallback_network_type
-
-See Dial Fields for details.
-
-#### fallback_delay
+`outbound.bind_interface``outbound.inet4_bind_address``outbound.inet6_bind_address`#### fallback_delay
 
 See Dial Fields for details.
 
@@ -18132,9 +18156,7 @@ of accepted values and platform notes.
 
 sniff performs protocol sniffing on connections.
 
-`sniff`For deprecated inbound.sniff options, it is considered to sniff() performed before routing.
-
-`inbound.sniff``sniff()`#### sniffer
+`sniff`#### sniffer
 
 Enabled sniffers.
 
@@ -18230,9 +18252,9 @@ QUIC client type detect support for QUIC
  SSH support
  RDP support
 
-If enabled in the inbound, the protocol and domain name (if present) of by the connection can be sniffed.
+The sniff route rule action sniffs the protocol and domain name (if present) of the connection.
 
-#### Supported Protocols
+`sniff`#### Supported Protocols
 
 | Network | Protocol | Domain Name | Client | 
 | --- | --- | --- | --- |
@@ -20408,7 +20430,7 @@ This option uses the same format as the route DNS rule action without the action
 `server`| Outbound/Endpoints | Effected domains | 
 | --- | --- |
 | direct | Domain in request | 
-| others | Domain in server address | 
+| others | Domain in server address, domain of the ECH config query | 
 
 `direct`#### network_strategy
 
@@ -20481,12 +20503,12 @@ domain_strategy is deprecated and will be removed in sing-box 1.14.0, check Migr
 
 `prefer_ipv4``prefer_ipv6``ipv4_only``ipv6_only`If set, the requested domain name will be resolved to IP before connect.
 
-| Outbound | Effected domains | Fallback Value | 
-| --- | --- | --- |
-| direct | Domain in request | Take inbound.domain_strategy if not set | 
-| others | Domain in server address | / | 
+| Outbound | Effected domains | 
+| --- | --- |
+| direct | Domain in request | 
+| others | Domain in server address | 
 
-`direct``inbound.domain_strategy`
+`direct`
 ---
 
 ## DNS01 Challenge Fields
@@ -21077,7 +21099,9 @@ Conflict with max_streams.
 
 Minimum multiplexed streams in a connection before opening a new connection.
 
-Conflict with max_streams.
+8 is used by default when neither max_connections nor max_streams is set.
+
+`8``max_connections``max_streams`Conflict with max_streams.
 
 `max_streams`#### max_streams
 
@@ -22602,7 +22626,10 @@ Uses Windows WLAN API.
 implementations in peak performance, energy efficiency, and memory usage.
 Remove the stack option to use it, see Migration.
 
-`stack`## 1.14.0
+`stack`The gvisor and mixed stacks require the with_gvisor build tag,
+which is no longer included by default.
+
+`gvisor``mixed``with_gvisor`## 1.14.0
 
 #### Legacy download_detour remote rule-set option
 
@@ -22798,6 +22825,10 @@ is intrusive, and is meaningless for proxy purposes.
 
 ##  Requirements
 
+### sing-box 1.15
+
+- Go 1.26.11 - ~
+
 ### sing-box 1.11
 
 - Go 1.23.1 - ~
@@ -22849,8 +22880,8 @@ go build -tags "tag_a tag_b" ./cmd/sing-box
 | with_wireguard |  | Build with WireGuard support, see WireGuard outbound. | 
 | with_utls |  | Build with uTLS support for TLS outbound, see TLS. | 
 | with_acme |  | Build with ACME TLS certificate issuer support, see TLS. | 
-| with_clash_api |  | Build with Clash API support, see Experimental. | 
-| with_v2ray_api | ️ | Build with V2Ray API support, see Experimental. | 
+| with_clash_api |  | Build with Clash API support, see Clash API. | 
+| with_v2ray_api | ️ | Build with V2Ray API support, see V2Ray API. | 
 | with_gvisor |  | Build with gVisor support, required by the deprecated gvisor / mixed Tun stacks. | 
 | with_embedded_tor (CGO required) | ️ | Build with embedded Tor support, see Tor outbound. | 
 | with_tailscale |  | Build with Tailscale support, see Tailscale endpoint. | 
@@ -24224,7 +24255,10 @@ Remove the stack option to use it.
 
 `stack`The stack option is deprecated in sing-box 1.15.0 and will be removed in sing-box 1.17.0.
 
-`stack````
+`stack`The gvisor and mixed stacks require the with_gvisor build tag,
+which is no longer included by default, so configurations using them must be migrated to run on official builds.
+
+`gvisor``mixed``with_gvisor````
 {
   "inbounds": [
     {
